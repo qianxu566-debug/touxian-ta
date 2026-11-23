@@ -1,0 +1,70 @@
+name: 发布偷闲獭
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '47 */3 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: public-site
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      pages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/configure-pages@v5
+      - name: 读取云端书目
+        run: |
+          mkdir -p _site/data/days
+          cp index.html _site/
+          curl -fsSL --retry 3 --max-time 120 https://qianxu566-debug.github.io/fanshu-reader/catalog.gz -o _site/catalog.gz
+          python3 -c "import gzip,json; b=json.load(gzip.open('_site/catalog.gz'))['books']; assert b and len(b)==len({x['id'] for x in b})"
+      - name: 更新榜单和书目资料
+        if: github.event_name != 'push'
+        run: |
+          node scripts/history.mjs _site/catalog.gz
+          node scripts/extra.mjs _site/catalog.gz
+          node scripts/hot.mjs || echo '暂时使用上期书库热度'
+          git add history data
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -qm '保存番茄榜单和书目资料'
+            git push
+          fi
+      - name: 生成网页并同步每日在读
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/prepare.py _site
+          for n in 0 1 7 30; do
+            day=$(TZ=Asia/Shanghai date -d "$n days ago" +%F)
+            if gh api -H 'Accept: application/vnd.github.raw+json' "repos/qianxu566-debug/fanshu-reader-observations/contents/days/$day.json.gz" > "$RUNNER_TEMP/day.gz" && gzip -t "$RUNNER_TEMP/day.gz"; then
+              cp "$RUNNER_TEMP/day.gz" "_site/data/days/$day.json.gz"
+            fi
+          done
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
