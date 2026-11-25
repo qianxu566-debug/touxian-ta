@@ -24,6 +24,7 @@ import {
 
 const catalogPath = process.argv[2] || 'catalog.gz';
 const coversOnly = process.argv.includes('--covers-only');
+const missingUpdate = process.argv.includes('--missing-update');
 const argNum = (prefix, fallback) => {
   const hit = process.argv.find((a) => a.startsWith(prefix));
   return hit ? Number(hit.split('=')[1]) : fallback;
@@ -75,7 +76,12 @@ const now = Date.now();
 const COVER_REFRESH_WINDOW_MS = 16 * 3600 * 1000;
 
 let queue = [];
-if (coversOnly) {
+if (missingUpdate) {
+  queue = [...books.values()]
+    .filter((b) => !Number.isFinite(b.lastUpdate))
+    .sort((a, b) => (extraRankIds.has(String(b.id)) ? 1 : 0) - (extraRankIds.has(String(a.id)) ? 1 : 0) || (b.readers ?? 0) - (a.readers ?? 0))
+    .map((b) => String(b.id));
+} else if (coversOnly) {
   // Only refresh books whose best direct cover expires within 16 hours
   queue = catalog.books
     .filter((b) => bestCoverExpiryMs(b) - now < COVER_REFRESH_WINDOW_MS)

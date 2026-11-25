@@ -186,7 +186,7 @@ async function fetchRanksAndBoards() {
     4,
     async (job) => {
       if (rateLimited) return;
-      const existing = snap.scopes.find((s) => s.key === job.key && s.ok);
+      const existing = snap.scopes.find((s) => s.key === job.key && s.ok && (s.rows?.length || 0) > 30);
       if (existing && !ranksOnly) {
         // Still absorb covers/books from today's cached snapshot
         for (const r of existing.rows || []) {
@@ -213,7 +213,7 @@ async function fetchRanksAndBoards() {
           app_id: 2503,
           rank_list_type: 3,
           offset: 0,
-          limit: 30,
+          limit: 100,
           category_id: job.cid,
           rank_version: '',
           gender: job.gender,
@@ -253,7 +253,7 @@ async function fetchRanksAndBoards() {
               primary: [job.category],
               channel: job.gender === '1' ? '男频' : '女频',
               coverUrl,
-              rankInfo: `${job.category}${job.mold === 2 ? '阅读榜' : '新书榜'} · 第${pos}名 · ${today}`,
+              rankInfo: pos <= 30 ? `${job.category}${job.mold === 2 ? '阅读榜' : '新书榜'} · 第${pos}名 · ${today}` : undefined,
               observed: entry.observed,
             });
             if (added) rankNewBooks++;
@@ -329,6 +329,7 @@ async function fetchRanksAndBoards() {
     }
   }
 
+  delete snap.catalogObservations;
   writeGzJson(histFile, snap);
   console.log(
     `[ranks] ok=${rankOk}/${rankJobs.length} boards=${Object.keys(snap.boards).length} newFromRanks=${rankNewBooks}`
@@ -365,6 +366,7 @@ async function watermarkCrawl(taxonomy) {
       if (rateLimited || Date.now() - startTime > maxMs) return;
       let belowStreak = 0;
       let noNewStreak = 0;
+      let sliceErrors = 0;
       let lastSig = '';
 
       for (let pg = 0; pg < maxPagesPerSlice; pg++) {
@@ -451,11 +453,12 @@ async function watermarkCrawl(taxonomy) {
             break;
           }
           consecutiveErrors++;
-          if (consecutiveErrors >= 15) {
+          sliceErrors++;
+          if (consecutiveErrors >= 40) {
             rateLimited = `连续错误过多: ${e.message}`;
             break;
           }
-          break;
+          if (sliceErrors >= 4) break;
         }
       }
       slicesDone++;
@@ -495,11 +498,11 @@ async function sweepLongCovers() {
     5,
     async (lane) => {
       if (rateLimited || Date.now() - startTime > maxMs) return;
-      let offset = 0;
+      let offset = 100;
       let version = '';
       let lastSig = '';
       let missStreak = 0;
-      for (let round = 0; round < 6; round++) {
+      for (let round = 0; round < 5; round++) {
         if (rateLimited || Date.now() - startTime > maxMs) break;
         await sleep(160);
         try {

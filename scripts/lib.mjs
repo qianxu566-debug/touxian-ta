@@ -191,6 +191,10 @@ export function applyDetailToBook(book, detail, observedIso, now = Date.now()) {
     book.words = wn;
     book.wordsObserved = observedIso;
   }
+  const lpt = Number(detail.lastPublishTime);
+  if (Number.isSafeInteger(lpt) && lpt > 946684800) {
+    book.lastUpdate = lpt;
+  }
   if (detail.creationStatus === '0' || detail.creationStatus === 0) book.status = '已完结';
   else if (detail.creationStatus === '1' || detail.creationStatus === 1) book.status = '连载中';
   if (!book.title && detail.bookName) book.title = String(detail.bookName);
