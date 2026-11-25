@@ -1,67 +1,124 @@
-name: 发布偷闲獭
+name: 发布偷闲獭（每日全库快照）
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+    paths-ignore:
+      - 'data/**'
+      - 'history/**'
+      - 'README.md'
   schedule:
-    - cron: '47 */3 * * *'
+    # 北京时间每天 06:00
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 运行模式（daily=每日全库，deep=全平台水线深扫，covers-only=仅刷封面和榜单，deploy-only=仅重新构建发布）
+        type: choice
+        default: daily
+        options:
+          - daily
+          - deep
+          - covers-only
+          - deploy-only
 permissions:
-  contents: read
+  contents: write
+  pages: write
+  id-token: write
 concurrency:
   group: public-site
   cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    permissions:
-      contents: write
-      pages: read
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
       - uses: actions/configure-pages@v5
-      - name: 读取云端书目
-        run: |
-          mkdir -p _site/data/days
-          cp index.html _site/
-          curl -fsSL --retry 3 --max-time 120 https://qianxu566-debug.github.io/fanshu-reader/catalog.gz -o _site/catalog.gz
-          python3 -c "import gzip,json; b=json.load(gzip.open('_site/catalog.gz'))['books']; assert b and len(b)==len({x['id'] for x in b})"
-      - name: 更新榜单和书目资料
-        if: github.event_name != 'push'
-        run: |
-          node scripts/history.mjs _site/catalog.gz
-          node scripts/extra.mjs _site/catalog.gz
-          node scripts/hot.mjs || echo '暂时使用上期书库热度'
-          git add history data
-          if ! git diff --cached --quiet; then
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -qm '保存番茄榜单和书目资料'
-            git push
-          fi
-      - name: 生成网页并同步每日在读
+      - name: 获取最新书目 catalog.gz
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 scripts/prepare.py _site
-          for n in 0 1 7 30; do
-            day=$(TZ=Asia/Shanghai date -d "$n days ago" +%F)
-            if gh api -H 'Accept: application/vnd.github.raw+json' "repos/qianxu566-debug/fanshu-reader-observations/contents/days/$day.json.gz" > "$RUNNER_TEMP/day.gz" && gzip -t "$RUNNER_TEMP/day.gz"; then
-              cp "$RUNNER_TEMP/day.gz" "_site/data/days/$day.json.gz"
-            fi
-          done
+          if gh release download catalog-latest -p catalog.gz -O catalog.gz 2>/dev/null && gzip -t catalog.gz; then
+            echo "已从 Release catalog-latest 获取书目"
+          elif curl -fsSL --retry 3 --max-time 120 "https://qianxu566-debug.github.io/touxian-ta/catalog.gz?t=$GITHUB_RUN_ID" -o catalog.gz && gzip -t catalog.gz; then
+            echo "已从线上 Pages 获取书目"
+          else
+            echo "无法获取已有书目"
+            exit 1
+          fi
+      - name: 确定运行模式
+        id: mode
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "value=deploy-only" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "value=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=daily" >> "$GITHUB_OUTPUT"
+          fi
+      - name: 书库水线发现与榜单采集
+        if: steps.mode.outputs.value != 'deploy-only'
+        run: |
+          case "${{ steps.mode.outputs.value }}" in
+            deep)        node scripts/discover.mjs catalog.gz --deep --max-minutes=40 ;;
+            daily)       node scripts/discover.mjs catalog.gz --max-minutes=15 ;;
+            covers-only) node scripts/discover.mjs catalog.gz --ranks-only ;;
+          esac
+      - name: 全库并发采集在读、字数、标签与国内直链封面
+        if: steps.mode.outputs.value == 'daily' || steps.mode.outputs.value == 'deep'
+        run: |
+          node scripts/observe.mjs catalog.gz --concurrency=10 --delay=60 --max-minutes=55
+      - name: 仅刷新即将过期的封面直链
+        if: steps.mode.outputs.value == 'covers-only'
+        run: |
+          node scripts/observe.mjs catalog.gz --covers-only --concurrency=10 --delay=60 --max-minutes=25
+      - name: 分批补齐全库开书日期
+        if: steps.mode.outputs.value == 'daily' || steps.mode.outputs.value == 'deep'
+        continue-on-error: true
+        run: |
+          node scripts/backfill-dates.mjs catalog.gz 1500 --concurrency=6
+      - name: 更新滚动 Release 书目资产
+        if: steps.mode.outputs.value != 'deploy-only'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gzip -t catalog.gz
+          if ! gh release view catalog-latest >/dev/null 2>&1; then
+            gh release create catalog-latest --title "最新书目快照" --notes "自动滚动更新的 catalog.gz（不占 Git 历史体积）"
+          fi
+          gh release upload catalog-latest catalog.gz --clobber
+      - name: 提交轻量历史快照与元数据
+        if: steps.mode.outputs.value == 'daily' || steps.mode.outputs.value == 'deep'
+        run: |
+          git add data/days data/book-dates.json.gz data/hot.json history
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -qm "保存每日在读快照、榜单与开书日期"
+            git pull --rebase origin main
+            git push
+          fi
+      - name: 编译静态站与紧凑趋势索引
+        run: |
+          python3 scripts/prepare.py _site catalog.gz
+          python3 - <<'PY'
+          import gzip, json
+          cat = json.load(gzip.open('_site/catalog.gz'))
+          tr = json.load(gzip.open('_site/data/trends.json.gz'))
+          assert cat['books'] and len(cat['books']) == len({b['id'] for b in cat['books']})
+          print(f"核验通过: {len(cat['books'])} 本书, 趋势基准日={tr.get('latestDate')}, 趋势覆盖={len(tr.get('books', {}))} 本")
+          PY
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
   publish:
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}

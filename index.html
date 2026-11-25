@@ -39,13 +39,12 @@ button:focus-visible{outline:3px solid #3c8366;outline-offset:2px}
 <div id="introPop" class="introPop" role="region" aria-label="完整简介" tabindex="0" hidden></div>
 <div class="pager"><button id="prev">上一页</button><label>第 <input class="pageinput" id="pageInput" aria-label="跳转页码" type="number" value="1" min="1"> 页</label><span id="pages"></span><button id="go">跳转</button><button id="next">下一页</button></div>
 <details class="coverage"><summary>实际收录范围与更新方式</summary><div id="coverage"></div></details></main>
-<footer>偷闲獭 · 番茄作品检索 · <a href="https://github.com/qianxu566-debug/fanshu-reader/tree/main/scripts">更新程序与许可</a></footer>
+<footer>偷闲獭 · 番茄作品检索 · <a href="https://github.com/qianxu566-debug/touxian-ta/tree/main/scripts">更新程序与许可</a></footer>
 
 <script type="module">
 'use strict';
-import {samples,count as measuredCount,difference,earlier,historyText} from './assets/daily.js';
+import {loadTrends,getTrend,shortDelta,deltaClass,formatPct,dayLabel,renderTrendPanel} from './assets/daily.js?v=2';
 import {dayString,ageDays,compressed,appLink,mobilePlatform} from './assets/reader.js?v=book-reader-3';
-const starts=await compressed('./data/book-dates.json.gz').catch(()=>({}));
 let age='', submitted='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 function ageFits(b){
@@ -64,20 +63,20 @@ const norm=v=>String(v||'').normalize('NFKC').toLowerCase().replace(/[\s\p{P}]/g
 const number=new Intl.NumberFormat('zh-CN');
 const format=n=>!Number.isFinite(n)?'暂无':n>=10000?number.format(n/10000)+' 万':number.format(n);
 el('count').textContent='正在读取书目…';
-const source=await fetch('./catalog.gz',{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error(r.status);return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json()}).catch(e=>{
-  el('count').textContent='书目暂时无法加载，请刷新重试';throw e;
-});
-const [hotFeed, daily]=await Promise.all([
+const [source, starts, hotFeed, trends] = await Promise.all([
+  fetch('./catalog.gz',{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error(r.status);return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json()}).catch(e=>{
+    el('count').textContent='书目暂时无法加载，请刷新重试';throw e;
+  }),
+  compressed('./data/book-dates.json.gz').catch(()=>({})),
   fetch('./data/hot.json',{cache:'no-cache'}).then(r=>r.json()).catch(()=>({ids:[]})),
-  compressed('./history/latest-readers.gz').catch(()=>({}))
+  loadTrends()
 ]);
-const measurementDay=dayString();
-let todayDetails=null,yesterdayDetails=null;
-const hotOrder=new Map(hotFeed.ids.map((id,index)=>[id,index]));
+const hotOrder=new Map((hotFeed?.ids||[]).map((id,index)=>[id,index]));
 for(const b of source.books){
-  const sample=daily[b.id];
-  if(sample && (!b.observed||sample[0]>b.observed)){
-    b.observed=sample[0];b.readers=sample[1];b.readersText='';
+  const t=getTrend(trends,b.id);
+  if(t){
+    b._t=t;
+    if(Number.isFinite(t.readers)){b.readers=t.readers;b.readersText='';}
   }
 }
 const books=(source?.books||[]).filter(b=>Number.isFinite(b.readers)&&b.readers>=8000);
@@ -280,7 +279,15 @@ function queryBooks(f){
     const weight=(f.raw===b.id||f.raw.replace(/\/$/,'')==='https://fanqienovel.com/page/'+b.id)?6:match(b,f.terms,phrase);if(weight<0)return false;
     scored.set(b,weight);return true;
   });
-  const val=b=>f.order==='long'?(b.words??-Infinity):f.order==='short'?-(b.words??Infinity):f.order==='gain'?(b.gain7??-Infinity):f.order==='debut'?Number((archiveEvent(b)?.date||'').replaceAll('-','')):b.readers??-Infinity;
+  const val=b=>{
+    if(f.order==='long')return b.words??-Infinity;
+    if(f.order==='short')return -(b.words??Infinity);
+    if(f.order==='gain1'){const t=b._t||getTrend(trends,b.id);return Number.isFinite(t?.d1)?t.d1:-Infinity;}
+    if(f.order==='gain7'||f.order==='gain'){const t=b._t||getTrend(trends,b.id);return Number.isFinite(t?.d7)?t.d7:-Infinity;}
+    if(f.order==='words1'){const t=b._t||getTrend(trends,b.id);return Number.isFinite(t?.dw1)?t.dw1:-Infinity;}
+    if(f.order==='debut')return Number((archiveEvent(b)?.date||'').replaceAll('-',''));
+    return b.readers??-Infinity;
+  };
   const pos=b=>b.positions?.[category]??Math.min(...Object.values(b.positions||{}));
   return found.sort((a,b)=>(f.order==='pos'?pos(a)-pos(b):0)||(f.order==='hot'?scored.get(b)-scored.get(a)||(hotOrder.get(a.id)??Infinity)-(hotOrder.get(b.id)??Infinity):0)||val(b)-val(a)||(b.readers??0)-(a.readers??0)||String(a.id).localeCompare(String(b.id)));
 }
@@ -309,24 +316,21 @@ function applyFilters(){
 function link(url,label){return /^https:\/\//.test(url||'')?'<a target="_blank" rel="noopener" href="'+esc(url)+'">'+esc(label)+'</a>':''}
 function coverSource(b){
   const now=Date.now();
-  for(const candidate of [b.longCoverUrl,b.coverUrl]){
+  let bestUrl='', bestExp=0;
+  for(const candidate of [b.longCoverUrl,b.freshCoverUrl,b.coverUrl]){
     if(!candidate)continue;
     try{
       const url=new URL(candidate),expiry=url.searchParams.get('x-expires');
-      if(url.protocol==='https:'&&(!expiry||Number(expiry)*1000>now))return url.href;
+      if(url.protocol!=='https:')continue;
+      const exp=expiry?Number(expiry)*1000:Number.MAX_SAFE_INTEGER;
+      if(exp>now&&exp>bestExp){bestExp=exp;bestUrl=url.href;}
     }catch{}
   }
-  return '';
-}
-const verifiedTags=new Map();
-function mergeBookTags(b,tags){
-  if(!Array.isArray(tags)||!tags.length)return;
-  b.tags=[...new Set([...tags.filter(t=>typeof t==='string'),...(b.tags||[])])];
-  tagIndex.delete(b);textIndex.delete(b);facetIndex.clear();
+  return bestUrl;
 }
 function cardTags(b){
   const main=primaryFor(b);
-  const tags=[...new Set([...(todayDetails?.rows[b.id]?.[2]||yesterdayDetails?.rows[b.id]?.[2]||[]),...(verifiedTags.get(b.id)||[]),...(b.tags||[]),...Object.values(b.officialTags||{}).flat()])].filter(t=>typeof t==='string'&&t.trim()&&!main.includes(t));
+  const tags=[...new Set([...(b.tags||[]),...Object.values(b.officialTags||{}).flat()])].filter(t=>typeof t==='string'&&t.trim()&&!main.includes(t));
   return tags.length?'<div class="tagline" aria-label="作品标签">'+tags.slice(0,5).map(t=>'<span class="chip">'+esc(t)+'</span>').join('')+'</div>':'';
 }
 function ageLabel(start,at,days){
@@ -340,21 +344,22 @@ function bookCard(b,index){
   const official='https://fanqienovel.com/page/'+encodeURIComponent(b.id);
   const main=primaryFor(b);
   const primaryLinks=main.map(name=>'<a class="primary" data-category="'+esc(name)+'" href="?category='+encodeURIComponent(name)+'">'+esc(name)+'</a>').join(' / ');
-  const uri=coverSource(b)||('https://fanshu-book-media.sugary-mule-7635.chatgpt.site/book-cover/'+encodeURIComponent(b.id));
-  const at=mode==='rank'?rankDay?.date:dayString();
+  const uri=coverSource(b);
+  const at=mode==='rank'?rankDay?.date:(trends.latestDate||dayString());
   const record=starts[b.id], days=ageDays(record?.start,at);
   const pos=b.positions?.[category]??(b.positions?Math.min(...Object.values(b.positions)):null);
-  const measured=at===measurementDay?measuredCount(todayDetails,b.id):null;
-  const diff=difference(measured,measuredCount(yesterdayDetails,b.id));
-  const changeLabel=diff?'<small class="dailyChange">较昨日 '+esc(diff)+'</small>':'';
+  const t=b._t||getTrend(trends,b.id);
+  const readersVal=mode==='rank'&&Number.isFinite(b.readers)?b.readers:(Number.isFinite(t?.readers)?t.readers:b.readers);
+  const changeLabel=(t&&Number.isFinite(t.d1))?'<small class="dailyChange '+deltaClass(t.d1)+'">'+esc(dayLabel(trends.latestDate))+' '+esc(shortDelta(t.d1))+(Number.isFinite(t.p1)?' ('+esc(formatPct(t.p1))+')':'')+'</small>':'';
+  const wordLabel=(t&&Number.isFinite(t.dw1))?(t.dw1>0?'<span class="wordDiff">日更 +'+number.format(t.dw1)+' 字</span>':(b.status==='连载中'?'<span class="wordDiff idle">昨日未更</span>':'')):'';
   const rank=mode==='rank'&&pos?'<span class="rankInfo">'+esc(boardName())+'第 '+pos+' 名</span>':'';
   const linkToApp=appLink(b.id,mobilePlatform());
   const bookLink=esc(official);
   const title='<a class="nameLink" href="'+bookLink+'" title="'+esc(b.title)+'">'+esc(b.title)+'</a>';
-  return '<article class="book" data-id="'+esc(b.id)+'"><div class="lead"><div><h3>'+title+'</h3><div class="bookmeta">'+(primaryLinks||'分类待核')+'<span>'+esc(b.author)+'</span></div><div class="spec">'+[Number.isFinite(b.words)?format(b.words)+'字':'',b.status,days===null?'':'开书 '+ageLabel(record.start,at,days)].filter(Boolean).map(esc).join(' · ')+'</div></div><a class="cover" href="'+bookLink+'"><img loading="'+(index<3?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer" src="'+esc(uri)+'" alt="'+esc(b.title)+'封面"></a></div><div class="cardTags">'+cardTags(b)+'</div>'+
+  const coverHtml=uri?'<img loading="'+(index<3?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer" src="'+esc(uri)+'" alt="'+esc(b.title)+'封面">':'<span class="coverFallback">暂无封面</span>';
+  return '<article class="book" data-id="'+esc(b.id)+'"><div class="lead"><div><h3>'+title+'</h3><div class="bookmeta">'+(primaryLinks||'分类待核')+'<span>'+esc(b.author)+'</span></div><div class="spec">'+[Number.isFinite(b.words)?format(b.words)+'字':'',b.status,days===null?'':'开书 '+ageLabel(record.start,at,days)].filter(Boolean).map(esc).join(' · ')+'</div></div><a class="cover" href="'+bookLink+'">'+coverHtml+'</a></div><div class="cardTags">'+cardTags(b)+'</div>'+
     (b.intro?'<button class="blurb" aria-expanded="false">'+esc(b.intro)+'</button>':'')+
-    '<div class="aud"><span>在读 <b>'+esc(measured!==null?format(measured):Number.isFinite(b.readers)?format(b.readers):b.readersText||'暂无')+'</b>'+changeLabel+'</span>'+rank+'<div class="cardOps"><button class="trend" aria-expanded="false">走势 ▾</button>'+(linkToApp?'<a class="readApp" href="'+esc(linkToApp)+'">用番茄 App 读这本 <span aria-hidden="true">↗</span></a>':'')+'</div></div><div class="trendBox" hidden></div></article>';
-
+    '<div class="aud"><span>在读 <b>'+esc(Number.isFinite(readersVal)?format(readersVal):b.readersText||'暂无')+'</b>'+changeLabel+'</span>'+wordLabel+rank+'<div class="cardOps"><button class="trend" aria-expanded="false">走势 ▾</button>'+(linkToApp?'<a class="readApp" href="'+esc(linkToApp)+'">用番茄 App 读这本 <span aria-hidden="true">↗</span></a>':'')+'</div></div><div class="trendBox" hidden></div></article>';
 }
 let anchor=null,closeTimer=0;
 function hideIntro(){
@@ -384,51 +389,18 @@ function openCategory(name){
   el('count').scrollIntoView({block:'start'});el('count').focus({preventScroll:true});
 }
 el('count').tabIndex=-1;
-listing.addEventListener('click',async e=>{
+listing.addEventListener('click',e=>{
   const card=e.target.closest('article');if(!card)return;
   const button=e.target.closest('.trend');if(!button)return;
   const box=card.querySelector('.trendBox');box.hidden=!box.hidden;
   button.setAttribute('aria-expanded',String(!box.hidden));button.textContent=box.hidden?'走势 ▾':'收起 ▴';
   if(box.hidden)return;
-  const b=(mode==='rank'?rankLookup:byBook).get(card.dataset.id);
-  box.textContent='正在读取记录…';
-  try{box.textContent=await historyText(b.id,mode==='rank'?rankDay.date:measurementDay)}
-  catch{box.textContent='当前日期暂无可用对照记录。'}
+  box.innerHTML=renderTrendPanel(trends,card.dataset.id);
 });
 listing.addEventListener('click',e=>{
   const link=e.target.closest('[data-category]');
   if(!link||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
   e.preventDefault();openCategory(link.dataset.category);
-});
-const visibleCards=new Set(),attemptedTags=new Set();
-let loadingTags=false,tagPause=false;
-async function loadVisibleTags(){
-  if(loadingTags||tagPause)return;
-  loadingTags=true;
-  try{
-    for(const card of visibleCards){
-      const id=card.dataset.id,b=(mode==='rank'?rankLookup:byBook).get(id);
-      if(!card.isConnected||!b||Array.isArray(todayDetails?.rows[id]?.[2])||verifiedTags.has(id)||attemptedTags.has(id))continue;
-      attemptedTags.add(id);
-      try{
-        const r=await fetch('https://fanshu-book-media.sugary-mule-7635.chatgpt.site/book-tags/'+id);
-        if([401,403,429,503].includes(r.status)||r.headers.has('retry-after')){tagPause=true;break}
-        if(r.ok){
-          const {tags}=await r.json();
-          if(Array.isArray(tags)){
-            verifiedTags.set(id,tags);mergeBookTags(b,tags);
-            const shown=listing.querySelector('article[data-id="'+id+'"] .cardTags');
-            if(shown)shown.innerHTML=cardTags(b);
-          }
-        }
-      }catch{}
-      await new Promise(resolve=>setTimeout(resolve,400));
-    }
-  }finally{loadingTags=false}
-}
-const tagObserver=new IntersectionObserver(entries=>{
-  for(const e of entries){if(e.isIntersecting&&e.target.isConnected)visibleCards.add(e.target);else visibleCards.delete(e.target)}
-  loadVisibleTags();
 });
 listing.addEventListener('pointerover',e=>{const b=e.target.closest('.blurb');if(b&&e.pointerType==='mouse')showIntro(b)});
 listing.addEventListener('pointerout',e=>{if(e.pointerType==='mouse'&&e.target.closest('.blurb')&&!popup.contains(e.relatedTarget))leave()});
@@ -441,16 +413,12 @@ document.addEventListener('pointerdown',e=>{if(anchor&&!popup.contains(e.target)
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){hideIntro();if(!el('tagpanel').hidden)togglePanel(false)}});
 window.addEventListener('resize',positionIntro);window.addEventListener('scroll',positionIntro,{passive:true});
 listing.addEventListener('error',e=>{if(e.target.tagName==='IMG'){
-  const fallback='https://fanshu-book-media.sugary-mule-7635.chatgpt.site/book-cover/'+e.target.closest('article').dataset.id;
-  if(e.target.getAttribute('src')!==fallback){e.target.src=fallback;return}
-  const hint=document.createElement('span');hint.className='missing';hint.textContent='查看原书封面';e.target.replaceWith(hint)}},true);
+  const hint=document.createElement('span');hint.className='coverFallback';hint.textContent='暂无封面';e.target.replaceWith(hint)}},true);
 function renderPage(){
   hideIntro();page=Math.min(Math.max(1,page),pages);const start=(page-1)*PAGE_SIZE;
   el('count').textContent='找到 '+number.format(results.length)+' 本作品';el('pageInput').value=page;el('pageInput').max=pages;
   el('pages').textContent='共 '+pages+' 页';el('prev').disabled=page===1;el('next').disabled=page===pages;
-  tagObserver.disconnect();visibleCards.clear();
   listing.innerHTML=results.slice(start,start+PAGE_SIZE).map(bookCard).join('')||'<div class="empty">'+(source?'没有符合条件的作品，可移除部分筛选条件。':'未能打开本地书库。')+'</div>';
-  listing.querySelectorAll('article').forEach(card=>tagObserver.observe(card));
 }
 function resetFilters(defaultHeat){
   category='';age='';submitted='';channel=mode==='rank'&&mold<3?(channel||'男频'):'';status='';selectedTags.clear();heat=defaultHeat;words='all';
@@ -462,10 +430,12 @@ function changeMode(next){
   mode=next;document.body.classList.toggle('rankMode',next==='rank');el('heading').textContent=modes[mode][0];el('subtitle').textContent=modes[mode][1];
   controls('nav',Object.entries(modes).map(([k,v])=>[k,v[0]]),mode,changeMode);
   el('daywrap').hidden=mode!=='debut';
-  const sorts=[['reads','在读人数 ↓']];if(mode==='search'&&hotOrder.size)sorts.unshift(['hot','书库热度']);
+  const sorts=[['reads','在读人数 ↓']];
+  if(mode==='search'&&hotOrder.size)sorts.unshift(['hot','书库热度']);
   if(mode==='rank')sorts.push(['pos','分类榜名次']);
-  if(mode==='debut')sorts.unshift(['debut','最新首秀']);if(mode==='sweep')sorts.unshift(['gain','7 天在读增量 ↓']);
-  if(mode!=='rank')sorts.push(['long','字数 ↓'],['short','字数 ↑']);el('sort').innerHTML=sorts.map(x=>option(...x)).join('');
+  sorts.push(['gain1','较昨日上涨 ↓']);
+  if(mode==='search')sorts.push(['gain7','近 7 天涨幅 ↓'],['words1','近期日更 ↓'],['long','字数 ↓'],['short','字数 ↑']);
+  el('sort').innerHTML=sorts.map(x=>option(...x)).join('');
   el('rankFields').hidden=mode!=='rank';el('rankMore').hidden=true;setExpanded(false);
   updateSavedButton();el('savedNotice').textContent='';
   if(mode==='rank'&&mold>=3)el('sort').value='pos';
@@ -525,7 +495,18 @@ el('pageInput').onkeydown=e=>{if(e.key==='Enter')go(Number(el('pageInput').value
 if(source.updated) document.querySelector('.meta').textContent='书目更新 '+new Date(source.updated).toLocaleDateString('zh-CN',{timeZone:'Asia/Shanghai'});
 el('size').textContent=number.format(books.length);
 function coverageSummary(){
-  return '<p>本书目来自本轮读取的番茄官方最热书库及分类榜单，共 '+number.format(books.length)+' 本去重作品，其中 '+number.format(introTotal)+' 本带有简介。筛选和排序在全部已收录作品中进行，封面在翻页后按需加载。</p>';
+  const st=trends.stats||{};
+  const ge10k=books.filter(b=>b.readers>=10000).length;
+  const directNow=books.filter(b=>Boolean(coverSource(b))).length;
+  const pct=(a,b)=>b?(100*a/b).toFixed(1)+'%':'—';
+  const lines=[
+    '<p>书目共 '+number.format(books.length)+' 本（≥1 万在读 '+number.format(ge10k)+' 本，含简介 '+number.format(introTotal)+' 本），按番茄官方男女频主分类水线截断深扫 + 榜单持续更新。</p>',
+    '<p>免 VPN 国内直链封面：当前有效 '+number.format(directNow)+' / '+number.format(books.length)+' 本（'+pct(directNow,books.length)+'），后台每 12 小时自动刷新续期，不再依赖第三方海外补图服务。</p>'
+  ];
+  if(trends.latestDate){
+    lines.push('<p>历史数据库基准日 '+esc(trends.latestDate)+'（已累积 '+(trends.dates?.length||0)+' 天）：当日实测 '+number.format(st.observed||0)+' 本，单日变化配对 '+number.format(st.paired1||0)+' 本'+(st.paired7?'，7 日变化 '+number.format(st.paired7)+' 本':'')+(st.wordsPaired1?'，单日字数变化 '+number.format(st.wordsPaired1)+' 本':'')+'。</p>');
+  }
+  return lines.join('');
 }
 function toggleCats(open){
  el('catpanel').hidden=!open;el('moreCats').setAttribute('aria-expanded',String(open));
@@ -539,21 +520,4 @@ el('catpanel').onkeydown=e=>{if(e.key==='Escape'){toggleCats(false);el('moreCats
 
 el('coverage').innerHTML=coverageSummary();changeMode(new URLSearchParams(location.search).get('view')==='rank'?'rank':'search');
 const initialCategory=new URLSearchParams(location.search).get('category');if(initialCategory)openCategory(initialCategory);
-
-Promise.all([samples(measurementDay),samples(earlier(measurementDay,1))]).then(([current,previous])=>{
-  todayDetails=current;yesterdayDetails=previous;
-  if(current===null)return;
-  for(const b of books){
-    mergeBookTags(b,current.rows[b.id]?.[2]||previous?.rows[b.id]?.[2]);
-    const value=measuredCount(current,b.id);
-    if(value!==null){b.readers=value;b.readersText='';b.observed=new Date(current.rows[b.id][0]*1000).toISOString()}
-  }
-  renderTags();
-  const oldPage=page;
-  results=queryBooks(filters());pages=Math.max(1,Math.ceil(results.length/PAGE_SIZE));page=oldPage;renderPage();
-  const targets=current.targets, obtained=targets.filter(id=>measuredCount(current,id)!==null).length;
-  const pairs=targets.filter(id=>measuredCount(current,id)!==null&&measuredCount(previous,id)!==null).length;
-  const rate=n=>targets.length?(100*n/targets.length).toFixed(1)+'%':'—';
-  el('coverage').insertAdjacentHTML('beforeend','<p>今日详情实测 '+obtained+' / '+targets.length+' 本（'+rate(obtained)+'）。昨日、今日均有读数 '+pairs+' 本（'+rate(pairs)+'）。每日覆盖目标 95%。</p>');
-});
 </script></body></html>

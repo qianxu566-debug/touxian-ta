@@ -1,0 +1,63 @@
+name: 偷闲獭 12 小时封面续命与榜单刷新
+on:
+  schedule:
+    # 北京时间每天 18:00（距 06:00 全库采集 12 小时，确保 24h 国内直链全天候有效）
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: public-site
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/configure-pages@v5
+      - name: 获取最新书目 catalog.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release download catalog-latest -p catalog.gz -O catalog.gz 2>/dev/null && gzip -t catalog.gz; then
+            echo "已从 Release catalog-latest 获取书目"
+          else
+            curl -fsSL --retry 3 --max-time 120 "https://qianxu566-debug.github.io/touxian-ta/catalog.gz?t=$GITHUB_RUN_ID" -o catalog.gz
+            gzip -t catalog.gz
+          fi
+      - name: 刷新今日榜单与热门顺序
+        continue-on-error: true
+        run: node scripts/discover.mjs catalog.gz --ranks-only
+      - name: 仅续期即将到期的国内 CDN 封面直链（不写 Git 历史）
+        run: node scripts/observe.mjs catalog.gz --covers-only --concurrency=10 --delay=60 --max-minutes=25
+      - name: 更新滚动 Release 书目资产
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gzip -t catalog.gz
+          if ! gh release view catalog-latest >/dev/null 2>&1; then
+            gh release create catalog-latest --title "最新书目快照" --notes "自动滚动更新的 catalog.gz"
+          fi
+          gh release upload catalog-latest catalog.gz --clobber
+      - name: 重新打包并部署 Pages
+        run: python3 scripts/prepare.py _site catalog.gz
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  publish:
+    needs: refresh
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

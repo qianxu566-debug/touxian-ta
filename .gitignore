@@ -1,0 +1,4 @@
+_site/
+catalog.gz
+*.tmp
+node_modules/
