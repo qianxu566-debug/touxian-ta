@@ -19,8 +19,8 @@ button:focus-visible{outline:3px solid #3c8366;outline-offset:2px}
 .book:focus-within h3 a{color:#a63e63}.bookmeta .primary{text-decoration:none}.bookmeta .primary:focus-visible{text-decoration:underline}
 .introPop{line-height:1.58;padding:12px 15px}.introPop strong{margin-bottom:4px}
 .list.dense{gap:0}.dense .book{grid-template-columns:minmax(0,1fr) auto;border-radius:0;padding:9px 14px;gap:10px}.dense .book+.book{border-top:none}.dense .cover,.dense .blurb,.dense .cardTags,.dense .event,.dense .missing{display:none}.dense h3{font-size:16px}.dense .aud{grid-column:auto;align-self:center}.dense .aud b{font-size:16px}.viewtools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}.viewtools button{font-size:13px;padding:4px 9px}.viewtools button[aria-pressed=true]{background:var(--green);color:white}#rankState{font-size:13px;color:var(--mute)}#rankDate{font:inherit}
-</style><link rel="icon" href="./assets/otter.svg"><link rel="stylesheet" href="./assets/site.css?v=3"></head><body><header><div class="bar"><div class="brand"><img src="./assets/otter.svg" alt="" width="36" height="36">偷闲獭</div><span class="meta">番茄小说 · 个人检索</span></div></header>
-<main><nav aria-label="发现作品" id="nav"></nav><div class="mast"><div><h1 id="heading">搜作品</h1><p id="subtitle"></p><form class="search" id="searchForm"><input type="search" enterkeyhint="search" id="q" aria-label="搜作品" placeholder="书名、作者或简介"><button type="submit">搜索</button></form></div><div class="total">已收录 <b id="size">—</b> 本</div><div id="rankFields" hidden><div class="filterrow"><strong>榜单</strong><div class="opts" id="rankKinds"></div></div><div class="filterrow"><strong>采集日</strong><div class="opts"><select id="rankDate" aria-label="选择榜单采集日"></select><span id="rankState" role="status"></span><button id="rankRetry" hidden>重新加载</button></div></div></div><div id="sweepFields" class="modeFields" hidden><div class="filterrow"><strong>统计窗</strong><div class="opts" id="sweepWin"></div></div><div class="filterrow"><strong>范围</strong><div class="opts" id="sweepScope"></div></div><div class="filterrow"><strong>深度</strong><div class="opts" id="sweepDepth"></div></div><div class="filterrow"><strong>榜单</strong><div class="opts" id="sweepKind"></div></div><span class="modeNote" id="sweepState" role="status"></span></div><div id="debutFields" class="modeFields" hidden><div class="filterrow"><strong>首秀窗</strong><div class="opts" id="debutWin"></div></div><div class="filterrow"><strong>首秀源</strong><div class="opts" id="debutKind"></div></div><div class="filterrow"><strong>指定日</strong><div class="opts"><select id="day" aria-label="指定首秀日期"></select><span class="modeNote" id="debutState" role="status"></span></div></div></div></div><div class="quick"><button data-sheet="channel">频道</button><button data-sheet="category">主分类</button><button data-sheet="status">组合筛选</button><span id="brief"></span></div>
+</style><link rel="icon" href="./assets/otter.svg"><link rel="stylesheet" href="./assets/site.css?v=4"></head><body><header><div class="bar"><div class="brand"><img src="./assets/otter.svg" alt="" width="36" height="36">偷闲獭</div><span class="meta">番茄小说 · 个人检索</span></div></header>
+<main><nav aria-label="发现作品" id="nav"></nav><div class="mast"><div><div class="mastHead"><h1 id="heading">搜作品</h1><button type="button" id="helpBtn" class="helpBtn" aria-expanded="false" aria-controls="modeHelp" hidden></button></div><p id="subtitle" class="mastSub"></p><div id="modeHelp" class="modeHelp" hidden></div><form class="search" id="searchForm"><input type="search" enterkeyhint="search" id="q" aria-label="搜作品" placeholder="书名、作者或简介"><button type="submit">搜索</button></form></div><div class="total">已收录 <b id="size">—</b> 本</div><div id="rankFields" hidden><div class="filterrow"><strong>榜单</strong><div class="opts" id="rankKinds"></div></div><div class="filterrow"><strong>采集日</strong><div class="opts"><select id="rankDate" aria-label="选择榜单采集日"></select><span id="rankState" role="status"></span><button id="rankRetry" hidden>重新加载</button></div></div></div><div id="sweepFields" class="modeFields" hidden><div class="filterrow"><strong>统计窗</strong><div class="opts" id="sweepWin"></div></div><div class="filterrow"><strong>范围</strong><div class="opts" id="sweepScope"></div></div><div class="filterrow"><strong>深度</strong><div class="opts" id="sweepDepth"></div></div><div class="filterrow"><strong>榜单</strong><div class="opts" id="sweepKind"></div></div><span class="modeNote" id="sweepState" role="status"></span></div><div id="debutFields" class="modeFields" hidden><div class="filterrow"><strong>首秀窗</strong><div class="opts" id="debutWin"></div></div><div class="filterrow"><strong>首秀源</strong><div class="opts" id="debutKind"></div></div><div class="filterrow"><strong>指定日</strong><div class="opts"><select id="day" aria-label="指定首秀日期"></select><span class="modeNote" id="debutState" role="status"></span></div></div></div></div><div class="quick"><button data-sheet="channel">频道</button><button data-sheet="category">主分类</button><button data-sheet="status">组合筛选</button><span id="brief"></span></div>
 <section class="filters" aria-label="检索条件"><div class="sheetTitle"><b>组合筛选</b><button id="closeSheet">关闭</button></div>
 
 
@@ -44,7 +44,7 @@ button:focus-visible{outline:3px solid #3c8366;outline-offset:2px}
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderTrendPanel} from './assets/daily.js?v=3';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel} from './assets/daily.js?v=4';
 import {dayString,ageDays,compressed,appLink,mobilePlatform} from './assets/reader.js?v=book-reader-3';
 let age='', submitted='', trendFilter='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
@@ -96,10 +96,15 @@ for(const [id,raw] of Object.entries(radar?.extraBooks||{})){
 }
 const lookupBook=id=>byBook.get(String(id))||extraById.get(String(id));
 const modes={
-  search:['搜作品','按题材、简介和阅读热度找书。'],
-  rank:['排行榜','番茄各分类前 30 名。选择分类可查看官方名次。'],
-  sweep:['扫榜','聚合近期上过榜的全部作品，掉榜也能筛，按涨幅捉黑马。'],
-  debut:['首秀','聚焦近期新晋上榜与破万起量的连载新书，追踪 14 天首秀表现。']
+  search:['搜作品','按题材、字数、开书时长和近期涨幅自由找书，收录全部 ≥8,000 在读作品。'],
+  rank:['排行榜','按 40 个官方大分类展示阅读榜与新书榜前 100 名（不足 100 本则全量展示），另含四大特色榜。'],
+  sweep:['扫榜','跨天汇总近期上过各分类前 100 名及特色榜的全部作品，掉榜也能保留筛选，专用来捉黑马。'],
+  debut:['首秀','聚焦 60 万字内、近期新晋冲榜或实测涨破万读的起量连载新书，追踪 14 天首秀期增长。']
+};
+const modeHelpMap={
+  rank:{btn:'? 榜单说明',html:'<p><strong>打破官方 30 名上限：</strong>番茄官网各分类常年只露出前 30 名且多为老书；本页按全部 <strong>40 个官方大分类（男频 19 + 女频 21）</strong>完整拉取<strong>前 100 名</strong>（部分小分类不足 100 本则按实际数量展示）。</p><p><strong>怎么看名次：</strong>选择某个主分类（如「传统玄幻」「都市高武」），再选「分类榜名次」排序，即可从第 1 名看到第 100 名。</p>'},
+  sweep:{btn:'? 什么是扫榜',html:'<p><strong>什么是扫榜：</strong>「扫榜」会每天自动记录各分类前 100 名与特色榜，把近 1 / 7 / 30 天内<strong>只要上过榜的作品全部汇总到一起</strong>——哪怕今天掉出榜单，在扫榜池里依然能被搜到。</p><p><strong>怎么用最高效：</strong>你可以切换「窗口新上榜」只看近期刚冲进来的新面孔，叠加主分类、题材、走势状态（如「一路在涨」），默认按<strong>区间涨幅</strong>排序捉黑马。</p>'},
+  debut:{btn:'? 什么是首秀',html:'<p><strong>什么是首秀：</strong>「首秀」专门淘近期刚刚冒头且<strong>已经起量（≥8,000 在读、连载中、60 万字内）</strong>的潜力新书，免去追太瘦幼苗的烦恼。</p><p><strong>三大新晋来源 &amp; 时间窗说明：</strong>包含「新书榜首秀」「阅读·黑马新晋」与「破万新苗（实测从 1 万以下冲破 1 万在读）」，以首次突破日为首秀日追踪 14 天累计与日均涨势。<em>注：当前榜单与全库实测自 11-22 起积累，满 7 天/14 天后各时间窗将自动拉开区分。</em></p>'}
 };
 const PAGE_SIZE=30;
 let introTotal=books.filter(b=>b.intro?.trim()).length;
@@ -195,10 +200,12 @@ function rebuildRank(){
   const gender=channel==='女频'?'0':'1';
   const scopes=(rankDay?.scopes||[]).filter(s=>s.gender===gender&&s.mold===mold&&s.ok);
   rankLookup=new Map();
+  let maxPos=0;
   for(const scope of scopes)for(const row of scope.rows){
+    if(row.pos>maxPos)maxPos=row.pos;
     let b=rankLookup.get(row.id);
     if(!b){
-      const base=byBook.get(row.id)||{};
+      const base=lookupBook(row.id)||{};
       b={...base,...row,observed:scope.observed,readersText:'',channel,primary:[],positions:{},intro:row.intro||base.intro,coverUrl:row.coverUrl||base.coverUrl};
       rankLookup.set(row.id,b);
     }
@@ -212,7 +219,7 @@ function rebuildRank(){
       for(const b of scope.rows||[])if(Number.isFinite(b.readers))observations.set(b.id,{readers:b.readers,observed:scope.observed});
     }
     rankBooks=(snapshot?.rows||[]).map(row=>{
-      const base=byBook.get(row.id)||{};
+      const base=lookupBook(row.id)||{};
       const fallback=observations.get(row.id)||(Number.isFinite(base.readers)?base:null);
       return {...base,...row,primary:row.primary?.length?row.primary:base.primary||[],tags:row.tags?.length?row.tags:base.tags||[],intro:row.intro||base.intro,channel:base.channel||'',
         coverUrl:row.coverUrl||base.coverUrl,readers:row.readers??fallback?.readers??null,observed:row.readers!=null?snapshot.observed:fallback?.observed,readersText:'',positions:{[boardName()]:row.pos}};
@@ -221,8 +228,9 @@ function rebuildRank(){
     el('rankState').textContent=rankBusy?'正在读取榜单…':rankError||(!snapshot?.rows?'该日尚无这项榜单记录':boardName()+' · 官方顺序 · '+rankBooks.length+' 本');
     el('rankRetry').hidden=!rankError;return;
   }
-  const expected=channel==='女频'?18:19;
-  el('rankState').textContent=rankBusy?'正在读取榜单…':rankError||('已取得 '+scopes.length+' / '+expected+' 个分类');
+  const expected=channel==='女频'?(rankDay?.date&&rankDay.date<'2026-11-26'?18:Math.max(21,scopes.length)):19;
+  const depthHint=maxPos>30?' · 各大类前 100 名（不足则全展示）':' · 各大类前 30 名';
+  el('rankState').textContent=rankBusy?'正在读取榜单…':rankError||('已取得 '+scopes.length+' / '+expected+' 个大分类'+depthHint+' · 共 '+number.format(rankBooks.length)+' 本');
   el('rankRetry').hidden=!rankError;
 }
 async function loadRank(date){
@@ -311,7 +319,7 @@ function paintControls(){
   }
   if(mode==='debut'){
     controls('debutWin',[[1,'最新 1 天'],[7,'近 7 天'],[14,'近 14 天'],[30,'近 30 天']],debutWin,v=>{debutWin=v;rebuildDebut();paintControls();renderTags();applyFilters()});
-    controls('debutKind',[['all','全部新晋'],['newrank','新书榜首秀'],['hotrank','阅读·黑马新晋'],['library','破万新苗']],debutKind,v=>{debutKind=v;rebuildDebut();paintControls();renderTags();applyFilters()});
+    controls('debutKind',[['all','全部新晋'],['newrank','新书榜首秀'],['hotrank','阅读·黑马新晋'],['broke10k','破万新苗']],debutKind,v=>{debutKind=v;rebuildDebut();paintControls();renderTags();applyFilters()});
   }
   controls('age',ageChoices,age,v=>{age=v;paintControls();applyFilters()});
   el('ageScope').textContent='按首章首次过审日期 · 已核实 '+Object.keys(starts).length+' 本';
@@ -448,13 +456,15 @@ function bookCard(b,index){
   const changeLabel=(t&&Number.isFinite(t.d1))?'<small class="dailyChange '+deltaClass(t.d1)+'">'+esc(dayLabel(trends.latestDate))+' '+esc(shortDelta(t.d1))+(Number.isFinite(t.p1)?' ('+esc(formatPct(t.p1))+')':'')+'</small>':'';
   const wordLabel=formatWordStatus(b,t,Math.floor(Date.now()/1000));
   const rank=mode==='rank'&&pos?'<span class="rankInfo">'+esc(boardName())+'第 '+pos+' 名</span>':'';
+  const historyRow=renderRankBadges(radar,b.id);
   let radarStrip='';
   if(mode==='sweep'&&b._sweep){
     const sw=b._sweep;
     const winText=sweepWin===1?'今日':sweepWin===30?'近30天':'近7天';
-    radarStrip='<div class="radarBadge"><span>'+esc(sw.laneLabel)+' · 在榜 '+sw.daysOnRank+' 天 · 最高第 '+sw.bestPos+' 名</span>'
+    radarStrip='<div class="radarBadge">'
       +(sw.onRankToday?'<em class="rTag on">今日在榜</em>':'<em class="rTag off">已掉榜</em>')
       +(sw.isNew?'<em class="rTag new">新上榜</em>':'')
+      +'<span>'+esc(sw.laneLabel)+' · 本窗在榜 '+sw.daysOnRank+' 天 · 最高第 '+sw.bestPos+' 名</span>'
       +(Number.isFinite(sw.gain)?'<span class="rGain">'+winText+' '+esc(shortDelta(sw.gain))+'</span>':'')
       +'</div>';
   }else if(mode==='debut'&&b._debut){
@@ -469,6 +479,7 @@ function bookCard(b,index){
   const title='<a class="nameLink" href="'+bookLink+'" title="'+esc(b.title)+'">'+esc(b.title)+'</a>';
   const coverHtml=uri?'<img loading="'+(index<3?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer" src="'+esc(uri)+'" alt="'+esc(b.title)+'封面">':'<span class="coverFallback">暂无封面</span>';
   return '<article class="book" data-id="'+esc(b.id)+'"><div class="lead"><div><h3>'+title+'</h3><div class="bookmeta">'+(primaryLinks||'分类待核')+'<span>'+esc(b.author)+'</span></div><div class="spec">'+[Number.isFinite(b.words)?format(b.words)+'字':'',b.status,days===null?'':'开书 '+ageLabel(record.start,at,days)].filter(Boolean).map(esc).join(' · ')+'</div></div><a class="cover" href="'+bookLink+'">'+coverHtml+'</a></div><div class="cardTags">'+cardTags(b)+'</div>'+
+    historyRow+
     (b.intro?'<button class="blurb" aria-expanded="false">'+esc(b.intro)+'</button>':'')+
     radarStrip+
     '<div class="aud"><span>在读 <b>'+esc(Number.isFinite(readersVal)?format(readersVal):b.readersText||'暂无')+'</b>'+changeLabel+'</span>'+wordLabel+rank+'<div class="cardOps"><button class="trend" aria-expanded="false">走势 ▾</button>'+(linkToApp?'<a class="readApp" href="'+esc(linkToApp)+'">用番茄 App 读这本 <span aria-hidden="true">↗</span></a>':'')+'</div></div><div class="trendBox" hidden></div></article>';
@@ -503,11 +514,17 @@ function openCategory(name){
 el('count').tabIndex=-1;
 listing.addEventListener('click',e=>{
   const card=e.target.closest('article');if(!card)return;
+  const rangeBtn=e.target.closest('.tmCell[data-range]');
+  if(rangeBtn){
+    const box=card.querySelector('.trendBox');
+    box.innerHTML=renderTrendPanel(trends,card.dataset.id,Number(rangeBtn.dataset.range));
+    return;
+  }
   const button=e.target.closest('.trend');if(!button)return;
   const box=card.querySelector('.trendBox');box.hidden=!box.hidden;
   button.setAttribute('aria-expanded',String(!box.hidden));button.textContent=box.hidden?'走势 ▾':'收起 ▴';
   if(box.hidden)return;
-  box.innerHTML=renderTrendPanel(trends,card.dataset.id);
+  box.innerHTML=renderTrendPanel(trends,card.dataset.id,1);
 });
 listing.addEventListener('click',e=>{
   const link=e.target.closest('[data-category]');
@@ -548,6 +565,12 @@ function changeMode(next){
   document.body.classList.toggle('sweepMode',next==='sweep');
   document.body.classList.toggle('debutMode',next==='debut');
   el('heading').textContent=modes[mode][0];el('subtitle').textContent=modes[mode][1];
+  const h=modeHelpMap[mode];
+  el('helpBtn').hidden=!h;
+  el('modeHelp').hidden=true;
+  el('helpBtn').setAttribute('aria-expanded','false');
+  if(h){el('helpBtn').textContent=h.btn;el('modeHelp').innerHTML=h.html;}
+  else{el('modeHelp').innerHTML='';}
   controls('nav',Object.entries(modes).map(([k,v])=>[k,v[0]]),mode,changeMode);
   el('rankFields').hidden=mode!=='rank';
   el('sweepFields').hidden=mode!=='sweep';
@@ -611,6 +634,7 @@ function togglePanel(open){el('tagpanel').hidden=!open;el('more').setAttribute('
 el('more').onclick=()=>togglePanel(el('tagpanel').hidden);el('tagSearch').oninput=renderTags;
 el('clearTags').onclick=()=>{selectedTags.clear();renderTags();applyFilters()};
 el('reset').onclick=()=>resetFilters('all');
+el('helpBtn').onclick=()=>{const open=el('modeHelp').hidden;el('modeHelp').hidden=!open;el('helpBtn').setAttribute('aria-expanded',String(open));};
 el('day').onchange=()=>{rebuildDebut();paintControls();renderTags();applyFilters()};
 for(const id of ['lo','hi','minread','maxread','sort'])el(id).addEventListener('input',e=>{if(!e.isComposing)applyFilters()});
 el('searchForm').onsubmit=e=>{e.preventDefault();submitted=el('q').value.trim();el('q').blur();applyFilters()};
@@ -633,14 +657,14 @@ function coverageSummary(){
   const directNow=books.filter(b=>Boolean(coverSource(b))).length;
   const pct=(a,b)=>b?(100*a/b).toFixed(1)+'%':'—';
   const lines=[
-    '<p>书目共 '+number.format(books.length)+' 本（≥1 万在读 '+number.format(ge10k)+' 本，含简介 '+number.format(introTotal)+' 本），按番茄官方男女频主分类水线截断深扫 + 榜单持续更新。</p>',
+    '<p>书目共 '+number.format(books.length)+' 本（≥1 万在读 '+number.format(ge10k)+' 本，含简介 '+number.format(introTotal)+' 本），按番茄全部 40 个官方主分类水线深扫 + 榜单前 100 名持续更新。</p>',
     '<p>免 VPN 国内直链封面：当前有效 '+number.format(directNow)+' / '+number.format(books.length)+' 本（'+pct(directNow,books.length)+'），后台每 12 小时自动刷新续期，不再依赖第三方海外补图服务。</p>'
   ];
   if(trends.latestDate){
     lines.push('<p>历史数据库基准日 '+esc(trends.latestDate)+'（已累积 '+(trends.dates?.length||0)+' 天）：当日实测 '+number.format(st.observed||0)+' 本，单日变化配对 '+number.format(st.paired1||0)+' 本'+(st.paired7?'，7 日变化 '+number.format(st.paired7)+' 本':'')+(st.wordsPaired1?'，单日字数变化 '+number.format(st.wordsPaired1)+' 本':'')+'。</p>');
   }
   if(radar?.rankDates?.length){
-    lines.push('<p>扫榜与首秀雷达（已累积 '+radar.rankDates.length+' 天全分类前 100 名与特色榜）：扫榜池 '+number.format(Object.keys(radar.sweep||{}).length)+' 本（含已掉榜追踪），首秀新晋榜 '+number.format(Object.keys(radar.debut||{}).length)+' 本。</p>');
+    lines.push('<p>全站榜单履历、扫榜与首秀雷达（已累积 '+radar.rankDates.length+' 天 40 主分类前 100 名与特色榜）：扫榜池 '+number.format(Object.keys(radar.sweep||{}).length)+' 本，首秀新晋榜 '+number.format(Object.keys(radar.debut||{}).length)+' 本。</p>');
   }
   return lines.join('');
 }

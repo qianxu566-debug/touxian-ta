@@ -4,15 +4,15 @@ Inputs:
   - catalog.gz (passed as sys.argv[2] or ./catalog.gz)
   - data/days/YYYY-MM-DD.json.gz (daily detail observations: [ts, readers, words?])
   - data/book-dates.json.gz, data/hot.json
-  - history/YYYY-MM-DD.json.gz (official ranks 1..100 & boards)
+  - history/YYYY-MM-DD.json.gz (official ranks 1..100 & boards across all 40 main categories)
   - index.html, assets/*
 
 Outputs in _site/:
   - index.html, assets/*, catalog.gz
   - data/trends.json.gz  (same-origin compact 1d/7d/30d trends + single-day word diff + 30d sparkline series)
-  - data/radar.json.gz   (precompiled index for 「扫榜」 and 「首秀」)
+  - data/radar.json.gz   (precompiled index for 「扫榜」, 「首秀」, and全站名片榜单履历)
   - data/book-dates.json.gz, data/hot.json
-  - history/index.json, history/YYYY-MM-DD.json.gz (trimmed to pos <= 30 for fast 「排行榜」 tab)
+  - history/index.json, history/YYYY-MM-DD.json.gz (full Top-100 compact snapshots for 「排行榜」)
 """
 import gzip
 import json
@@ -43,8 +43,33 @@ if out.resolve() != cwd:
         if Path(rel).exists():
             shutil.copyfile(rel, out / rel)
 
-# 1. Load valid rank history files (up to 90 days) and write Top-30 trimmed copies for 排行榜
-rank_files = sorted(Path('history').glob('????-??-??.json.gz'))[-90:]
+# 0. Load catalog_map early so compact history snapshots can omit redundant strings
+catalog_map = {}
+valid_covers = 0
+total_books = 0
+if catalog_src.exists():
+    with gzip.open(catalog_src, 'rt', encoding='utf-8') as fh:
+        cat = json.load(fh)
+    now_s = time.time()
+    for b in cat.get('books', []):
+        total_books += 1
+        bid = str(b['id'])
+        catalog_map[bid] = b
+        best_exp = 0
+        for k in ('longCoverUrl', 'freshCoverUrl', 'coverUrl'):
+            u = b.get(k) or ''
+            if u.startswith('https://'):
+                qs = urlparse.parse_qs(urlparse.urlsplit(u).query)
+                e = int(qs.get('x-expires', [str(int(now_s) + 86400)])[0])
+                if e > best_exp:
+                    best_exp = e
+        if best_exp > now_s:
+            valid_covers += 1
+
+catalog_ids = set(catalog_map.keys())
+
+# 1. Load ALL valid rank history files (no 90-day cutoff for lifetime badge tenure!)
+rank_files = sorted(Path('history').glob('????-??-??.json.gz'))
 rank_snaps = {}  # date_str -> parsed json
 for f in rank_files:
     try:
@@ -60,19 +85,72 @@ for f in rank_files:
     s['date'] = day_str
     rank_snaps[day_str] = s
 
-    trimmed_scopes = []
+all_rank_dates = sorted(rank_snaps.keys())
+kept_rank_dates = all_rank_dates[-90:]
+rank_dates_desc = list(reversed(kept_rank_dates))
+(out / 'history' / 'index.json').write_text(json.dumps(rank_dates_desc), encoding='utf-8')
+
+# Write full Top-100 compact snapshots for last 90 rank dates (deduplicating rows already in catalog.gz)
+for day_str in kept_rank_dates:
+    s = rank_snaps[day_str]
+    compact_scopes = []
     for g in s.get('scopes', []):
-        g_copy = dict(g)
-        rows = g.get('rows') or []
-        g_copy['rows'] = [r for r in rows if (r.get('pos') or 999) <= 30][:30]
-        trimmed_scopes.append(g_copy)
-    trimmed = {
-        'date': day_str,
-        'scopes': trimmed_scopes,
-        'boards': s.get('boards') or {},
-    }
-    target = out / 'history' / f.name
-    if target.resolve() != f.resolve():
+        g_copy = {
+            'key': g.get('key'),
+            'gender': g.get('gender'),
+            'cid': g.get('cid'),
+            'category': g.get('category'),
+            'mold': g.get('mold'),
+            'observed': g.get('observed'),
+            'ok': g.get('ok'),
+        }
+        compact_rows = []
+        for r in g.get('rows') or []:
+            pos = r.get('pos')
+            if not isinstance(pos, int) or pos <= 0 or pos > 100:
+                continue
+            bid = str(r.get('id') or '')
+            if bid in catalog_ids and catalog_map[bid].get('title'):
+                compact_rows.append({
+                    'id': bid,
+                    'pos': pos,
+                    'readers': r.get('readers'),
+                    'words': r.get('words'),
+                    'status': r.get('status') or '',
+                })
+            else:
+                compact_rows.append({
+                    'id': bid,
+                    'pos': pos,
+                    'readers': r.get('readers'),
+                    'words': r.get('words'),
+                    'status': r.get('status') or '',
+                    'title': r.get('title') or '',
+                    'author': r.get('author') or '',
+                    'intro': r.get('intro') or '',
+                    'coverUrl': r.get('coverUrl') or '',
+                })
+        g_copy['rows'] = compact_rows
+        compact_scopes.append(g_copy)
+
+    compact_boards = {}
+    for mk, bdata in (s.get('boards') or {}).items():
+        b_rows = []
+        for r in bdata.get('rows') or []:
+            bid = str(r.get('id') or '')
+            if bid in catalog_ids and catalog_map[bid].get('title'):
+                b_rows.append({
+                    'id': bid,
+                    'pos': r.get('pos'),
+                    'readers': r.get('readers'),
+                })
+            else:
+                b_rows.append(r)
+        compact_boards[mk] = {'observed': bdata.get('observed'), 'rows': b_rows}
+
+    trimmed = {'date': day_str, 'scopes': compact_scopes, 'boards': compact_boards}
+    target = out / 'history' / f'{day_str}.json.gz'
+    if target.resolve() != (Path('history') / f'{day_str}.json.gz').resolve():
         target.write_bytes(
             gzip.compress(
                 json.dumps(trimmed, ensure_ascii=False, separators=(',', ':')).encode('utf-8'),
@@ -80,10 +158,6 @@ for f in rank_files:
                 mtime=0,
             )
         )
-
-all_rank_dates = sorted(rank_snaps.keys())
-rank_dates_desc = list(reversed(all_rank_dates))
-(out / 'history' / 'index.json').write_text(json.dumps(rank_dates_desc), encoding='utf-8')
 
 # 2. Load daily detail observations from data/days/YYYY-MM-DD.json.gz (up to last 35 days)
 day_files = sorted(Path('data/days').glob('????-??-??.json.gz'))[-35:]
@@ -130,30 +204,6 @@ if all_obs_dates:
 series_dates = [d for d in all_obs_dates if not latest_date or d <= latest_date][-30:]
 date_to_idx = {d: i for i, d in enumerate(series_dates)}
 
-catalog_map = {}
-valid_covers = 0
-total_books = 0
-if catalog_src.exists():
-    with gzip.open(catalog_src, 'rt', encoding='utf-8') as fh:
-        cat = json.load(fh)
-    now_s = time.time()
-    for b in cat.get('books', []):
-        total_books += 1
-        bid = str(b['id'])
-        catalog_map[bid] = b
-        best_exp = 0
-        for k in ('longCoverUrl', 'freshCoverUrl', 'coverUrl'):
-            u = b.get(k) or ''
-            if u.startswith('https://'):
-                qs = urlparse.parse_qs(urlparse.urlsplit(u).query)
-                e = int(qs.get('x-expires', [str(int(now_s) + 86400)])[0])
-                if e > best_exp:
-                    best_exp = e
-        if best_exp > now_s:
-            valid_covers += 1
-
-catalog_ids = set(catalog_map.keys())
-
 
 def pct(delta, base):
     if delta is None or not base:
@@ -181,7 +231,6 @@ if latest_date:
     obs_7 = daily_obs.get(d7_str, {})
     obs_30 = daily_obs.get(d30_str, {})
 
-    # Fallback wordNumber from d1_str rank snapshot (bridges 11-25 -> 11-26 immediately)
     rank_words_d1 = {}
     if d1_str in rank_snaps:
         for s in rank_snaps[d1_str].get('scopes', []):
@@ -197,7 +246,6 @@ if latest_date:
 
     all_ids = set(obs_now.keys()) | set(series_map.keys())
     if catalog_ids:
-        # Keep catalog books plus any ranked books seen in observations
         all_ids &= (catalog_ids | set(obs_now.keys()))
 
     for bid in all_ids:
@@ -265,7 +313,7 @@ trends_payload = {
     )
 )
 
-# 3. Compile data/radar.json.gz for 「扫榜」 and 「首秀」
+# 3. Compile data/radar.json.gz for 「扫榜」, 「首秀」, and lifetime rank badges
 book_dates = {}
 bd_path = Path('data/book-dates.json.gz')
 if bd_path.exists():
@@ -304,18 +352,18 @@ def get_cat_idx(gender_str, name):
     return cat_to_idx[key]
 
 
-# Full-history tracking structures
-first_any_30 = {}      # bid -> earliest date seen in pos<=30 or board
-first_any_100 = {}     # bid -> earliest date seen in any rank/board
-first_mold1_30 = {}    # bid -> (date, best_pos, cat_name)
-first_mold1_100 = {}   # bid -> (date, best_pos, cat_name)
-first_hot_30 = {}      # bid -> (date, best_pos, label)  (mold 2 or 4)
-first_hot_100 = {}     # bid -> (date, best_pos, label)
+first_any_30 = {}
+first_any_100 = {}
+first_mold1_30 = {}
+first_mold1_100 = {}
+first_hot_30 = {}
+first_hot_100 = {}
 
-# Window aggregation for sweep
-sweep_lanes = {}       # bid -> {(mold, cat_idx): [mask30, mask100, best30, best100, latestPos]}
-rank_meta = {}         # bid -> latest book metadata collected from ranks
-rank_readers_by_day = {}  # (bid, date_str) -> readers
+# Lifetime badge tracking: bid -> {grp -> {date_str: min_pos}}
+badge_days = {}
+sweep_lanes = {}
+rank_meta = {}
+rank_readers_by_day = {}
 
 for d_str in all_rank_dates:
     snap = rank_snaps[d_str]
@@ -323,7 +371,6 @@ for d_str in all_rank_dates:
     bit = (1 << win_idx) if win_idx is not None else 0
     is_latest_rank = (d_str == latest_rank_date)
 
-    # Category ranks (mold 1 = 新书榜, mold 2 = 阅读榜)
     for s in snap.get('scopes', []):
         if not s.get('ok'):
             continue
@@ -342,6 +389,10 @@ for d_str in all_rank_dates:
             rc = r.get('readers')
             if isinstance(rc, int) and rc >= 0:
                 rank_readers_by_day[(bid, d_str)] = max(rank_readers_by_day.get((bid, d_str), -1), rc)
+
+            b_grp = badge_days.setdefault(bid, {}).setdefault(mold, {})
+            if d_str not in b_grp or pos < b_grp[d_str]:
+                b_grp[d_str] = pos
 
             if bid not in first_any_100:
                 first_any_100[bid] = d_str
@@ -381,7 +432,6 @@ for d_str in all_rank_dates:
                 if is_latest_rank and pos < st[4]:
                     st[4] = pos
 
-            # Merge latest metadata for extraBooks hydration
             m = rank_meta.get(bid)
             if not m:
                 m = {
@@ -420,7 +470,6 @@ for d_str in all_rank_dates:
                 elif ch and not m['channel']:
                     m['channel'] = ch
 
-    # Special boards (mold 3..6)
     for mold_key, bdata in (snap.get('boards') or {}).items():
         mold = int(mold_key)
         bname = BOARD_NAMES.get(mold, f'榜单{mold}')
@@ -433,6 +482,11 @@ for d_str in all_rank_dates:
             rc = r.get('readers')
             if isinstance(rc, int) and rc >= 0:
                 rank_readers_by_day[(bid, d_str)] = max(rank_readers_by_day.get((bid, d_str), -1), rc)
+
+            b_grp = badge_days.setdefault(bid, {}).setdefault(mold, {})
+            if d_str not in b_grp or pos < b_grp[d_str]:
+                b_grp[d_str] = pos
+
             if bid not in first_any_100:
                 first_any_100[bid] = d_str
             if bid not in first_any_30:
@@ -535,6 +589,33 @@ for bid, lanes_map in sweep_lanes.items():
     t_state = classify_trend_state(bid)
     sweep_books[bid] = [lanes_list, new30, new100, g1, g7, g30, t_state]
 
+# Build compact lifetime rank history badges: radar['badges'][bid]
+badges = {}
+grp_priority = {2: 0, 1: 1, 4: 2, 3: 3, 5: 4, 6: 5}
+for bid, grp_map in badge_days.items():
+    items = []
+    for grp, dpos in grp_map.items():
+        sdates = sorted(dpos.keys())
+        total_days = len(sdates)
+        first_date = sdates[0]
+        first_pos = dpos[first_date]
+        last_date = sdates[-1]
+        if grp in (1, 2):
+            exact_start = 0 if (first_date == top30_base_date or (first_date == top100_base_date and first_pos > 30)) else 1
+        else:
+            exact_start = 0 if first_date == top30_base_date else 1
+        on_today = 1 if (latest_rank_date and last_date == latest_rank_date) else 0
+        drop_mmdd = '' if on_today else str(date.fromisoformat(last_date) + timedelta(days=1))[5:]
+        best_pos = min(dpos.values())
+        top1_days = sum(1 for p in dpos.values() if p == 1)
+        top10_days = sum(1 for p in dpos.values() if p <= 10)
+        items.append((
+            (grp_priority.get(grp, 9), -total_days, best_pos),
+            [grp, total_days, first_date[5:], exact_start, best_pos, top1_days, top10_days, on_today, drop_mmdd],
+        ))
+    items.sort(key=lambda x: x[0])
+    badges[bid] = [x[1] for x in items[:3]]
+
 
 def readers_on_day(bid, d_str):
     row = daily_obs.get(d_str, {}).get(bid)
@@ -543,15 +624,25 @@ def readers_on_day(bid, d_str):
     return rank_readers_by_day.get((bid, d_str))
 
 
-# Build 「首秀」 entries: young ongoing works that genuinely broke out after baseline
+# Precompute first_obs_date & verified 10k-crossing dates across daily_obs
 first_obs_date = {}
+cross10k = {}  # bid -> (cross_date, before_readers)
+min_obs_seen = {}  # bid -> min_readers_seen_before
 for d_str in all_obs_dates:
-    for bid in daily_obs[d_str]:
+    for bid, (rc, _wn) in daily_obs[d_str].items():
         if bid not in first_obs_date:
             first_obs_date[bid] = d_str
+        prev_min = min_obs_seen.get(bid)
+        if prev_min is None:
+            min_obs_seen[bid] = rc
+        else:
+            if bid not in cross10k and prev_min < 10000 and rc >= 10000:
+                cross10k[bid] = (d_str, prev_min)
+            if rc < prev_min:
+                min_obs_seen[bid] = rc
 
 debut_books = {}
-candidate_debut_ids = set(first_mold1_100.keys()) | set(first_hot_100.keys()) | set(catalog_ids)
+candidate_debut_ids = set(first_mold1_100.keys()) | set(first_hot_100.keys()) | set(cross10k.keys()) | set(catalog_ids)
 obs_and_rank_dates = sorted(set(all_obs_dates) | set(all_rank_dates))
 ref_today = latest_rank_date or latest_date or CATALOG_BASE_DATE
 
@@ -568,7 +659,6 @@ for bid in candidate_debut_ids:
     if isinstance(words, int) and words > 600000:
         continue
 
-    # Book age check when chapter-1 start date is known
     start_str = (book_dates.get(bid) or {}).get('start')
     if start_str and ref_today:
         try:
@@ -578,63 +668,73 @@ for bid in candidate_debut_ids:
         except ValueError:
             pass
 
-    # For reader satisfaction ("只看已起量新书"), keep catalog floor (>=8,000 readers if known) or Top-30 new book rank
     tr = trends_books.get(bid)
     cur_readers = (tr[0] if tr else None) or (cat_b or {}).get('readers') or (meta_b or {}).get('readers')
 
-    debut_date = None
-    kind = None
-    label = None
-    best_pos = 999
+    sources = []
+    dates_matched = []
+    primary_label = None
+    best_pos = None
 
-    # Source 1: 新书榜首秀
+    # Signal 1: 新书榜首秀
     m30 = first_mold1_30.get(bid)
     m100 = first_mold1_100.get(bid)
     if m30 and m30[0] > top30_base_date and first_any_30.get(bid, '9999') > top30_base_date:
-        debut_date, best_pos, cname = m30
-        kind = 'newrank'
-        label = f'{cname}新书榜 · 最高第{best_pos}名'
+        sources.append('newrank')
+        dates_matched.append(m30[0])
+        best_pos = m30[1]
+        primary_label = f'{m30[2]}新书榜 · 最高第{best_pos}名'
     elif m100 and m100[0] > top100_base_date and first_any_100.get(bid, '9999') > top100_base_date:
         if cur_readers is None or cur_readers >= 8000:
-            debut_date, best_pos, cname = m100
-            kind = 'newrank'
-            label = f'{cname}新书榜 · 最高第{best_pos}名'
+            sources.append('newrank')
+            dates_matched.append(m100[0])
+            best_pos = m100[1]
+            primary_label = f'{m100[2]}新书榜 · 最高第{best_pos}名'
 
-    # Source 2: 阅读榜 / 黑马榜新晋 (<= 50万字)
-    if not debut_date and (not isinstance(words, int) or words <= 500000):
+    # Signal 2: 阅读榜 / 黑马榜新晋 (<= 50万字)
+    if not isinstance(words, int) or words <= 500000:
         h30 = first_hot_30.get(bid)
         h100 = first_hot_100.get(bid)
         if h30 and h30[0] > top30_base_date and first_any_30.get(bid, '9999') > top30_base_date:
-            debut_date, best_pos, hlbl = h30
-            kind = 'hotrank'
-            label = f'{hlbl} · 最高第{best_pos}名'
+            sources.append('hotrank')
+            dates_matched.append(h30[0])
+            if not primary_label:
+                best_pos = h30[1]
+                primary_label = f'{h30[2]} · 最高第{best_pos}名'
         elif h100 and h100[0] > top100_base_date and first_any_100.get(bid, '9999') > top100_base_date:
             if cur_readers is None or cur_readers >= 8000:
-                debut_date, best_pos, hlbl = h100
-                kind = 'hotrank'
-                label = f'{hlbl} · 最高第{best_pos}名'
+                sources.append('hotrank')
+                dates_matched.append(h100[0])
+                if not primary_label:
+                    best_pos = h100[1]
+                    primary_label = f'{h100[2]} · 最高第{best_pos}名'
 
-    # Source 3: 书库新晋破万 (entered catalog strictly after deep-crawl baseline)
-    if not debut_date and (not isinstance(words, int) or words <= 500000) and (cur_readers or 0) >= 8000:
+    # Signal 3: 破万新苗 (real observed <10k -> >=10k crossing, or post-baseline >=10k entry)
+    if (cur_readers or 0) >= 10000:
+        cr = cross10k.get(bid)
         fo = first_obs_date.get(bid)
-        if fo and fo > CATALOG_BASE_DATE:
-            debut_date = fo
-            kind = 'library'
-            label = '书库新晋破万'
-            best_pos = None
+        if cr:
+            sources.append('broke10k')
+            dates_matched.append(cr[0])
+            if not primary_label:
+                primary_label = f'在读突破 1 万（此前 {cr[1]} 人）'
+        elif fo and fo > CATALOG_BASE_DATE and (not isinstance(words, int) or words <= 500000):
+            sources.append('broke10k')
+            dates_matched.append(fo)
+            if not primary_label:
+                primary_label = '书库新晋破万'
 
-    if not debut_date:
+    if not sources:
         continue
 
-    # Respect main >=8000 floor unless already in catalog
     if bid not in catalog_ids and cur_readers is not None and cur_readers < 8000:
         continue
 
+    debut_date = min(dates_matched)
     d_debut = date.fromisoformat(debut_date)
     day_num = (date.fromisoformat(ref_today) - d_debut).days + 1 if ref_today else 1
     end_cap = str(min(date.fromisoformat(ref_today), d_debut + timedelta(days=13)))
 
-    # 14-day debut cumulative & daily average gain
     start_win_end = str(d_debut + timedelta(days=3))
     r_start, d_start = None, None
     for d_s in obs_and_rank_dates:
@@ -663,11 +763,10 @@ for bid in candidate_debut_ids:
         period_gain = None
         daily_avg = None
 
-    debut_books[bid] = [debut_date, kind, label, day_num, period_gain, daily_avg, best_pos]
+    debut_books[bid] = [debut_date, sources, primary_label, day_num, period_gain, daily_avg, best_pos]
 
-# Hydrate any ranked/debut book missing from catalog_ids (e.g., #31..#100 <8k readers)
 extra_books = {}
-for bid in (set(sweep_books.keys()) | set(debut_books.keys())) - catalog_ids:
+for bid in (set(sweep_books.keys()) | set(debut_books.keys()) | set(badges.keys())) - catalog_ids:
     m = rank_meta.get(bid)
     if m and m.get('title'):
         extra_books[bid] = m
@@ -681,6 +780,7 @@ radar_payload = {
     'cats': cats,
     'sweep': sweep_books,
     'debut': debut_books,
+    'badges': badges,
     'extraBooks': extra_books,
 }
 
@@ -698,10 +798,11 @@ print(
             'latestDate': latest_date,
             'latestRankDate': latest_rank_date,
             'seriesDays': len(series_dates),
-            'rankDays': len(win_dates),
+            'rankDays': len(all_rank_dates),
             'trendsBooks': len(trends_books),
             'sweepBooks': len(sweep_books),
             'debutBooks': len(debut_books),
+            'badgesBooks': len(badges),
             'extraBooks': len(extra_books),
             'stats': trends_payload['stats'],
             'trendsBytes': (out / 'data' / 'trends.json.gz').stat().st_size,

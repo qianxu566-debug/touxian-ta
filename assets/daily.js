@@ -210,9 +210,13 @@ export function evaluateSweepBook(radar, id, opts = {}) {
 export function evaluateDebutBook(radar, id, opts = {}) {
   const row = radar?.debut?.[String(id)];
   if (!Array.isArray(row)) return null;
-  const [debutDate, kind, label, dayNum, periodGain, dailyAvg, bestPos] = row;
+  const [debutDate, kindOrArr, label, dayNum, periodGain, dailyAvg, bestPos] = row;
+  const kinds = Array.isArray(kindOrArr) ? kindOrArr : [kindOrArr];
 
-  if (opts.kind && opts.kind !== 'all' && kind !== opts.kind) return null;
+  if (opts.kind && opts.kind !== 'all') {
+    const targetKind = opts.kind === 'library' ? 'broke10k' : opts.kind;
+    if (!kinds.includes(targetKind)) return null;
+  }
   if (opts.day && debutDate !== opts.day) return null;
 
   const winDays = Number(opts.winDays || 7);
@@ -225,7 +229,7 @@ export function evaluateDebutBook(radar, id, opts = {}) {
   return {
     matched: true,
     debutDate,
-    kind,
+    kinds,
     label,
     dayNum,
     periodGain,
@@ -234,66 +238,141 @@ export function evaluateDebutBook(radar, id, opts = {}) {
   };
 }
 
-function buildSparkline(series, dates) {
+const BADGE_NAMES = {
+  2: '阅读榜',
+  1: '新书榜',
+  3: '巅峰榜',
+  4: '黑马榜',
+  5: '热搜榜',
+  6: '推荐榜',
+};
+
+export function renderRankBadges(radar, id) {
+  const list = radar?.badges?.[String(id)];
+  if (!Array.isArray(list) || !list.length) return '';
+  const items = list
+    .map(([grp, totalDays, firstMMDD, exactStart, bestPos, top1Days, top10Days, onToday, dropMMDD]) => {
+      const name = BADGE_NAMES[grp] || `榜单${grp}`;
+      const pillCls = onToday ? (grp === 2 ? 'rhPill active read' : 'rhPill active') : 'rhPill dropped';
+      const parts = [];
+      if (exactStart && firstMMDD) parts.push(`${firstMMDD}上榜`);
+      if (Number.isFinite(bestPos) && bestPos < 999) parts.push(`最高第${bestPos}名`);
+      if (bestPos === 1 && top1Days > 0) parts.push(`榜首${top1Days}天`);
+      else if (bestPos <= 10 && top10Days > 0) parts.push(`前10共${top10Days}天`);
+      if (!onToday && dropMMDD) parts.push(`${dropMMDD}掉榜`);
+      return `<span class="rhItem"><b class="${pillCls}">${name} ${totalDays}天</b><em>${parts.join(' · ')}</em></span>`;
+    })
+    .join('');
+  return `<div class="rankHistory" aria-label="榜单履历">${items}</div>`;
+}
+
+function buildSparkline(series, dates, rangeDays = 1) {
   if (!Array.isArray(series) || series.length < 2) {
-    return '<div class="trendEmpty">已记录 ' + (series?.length || 0) + ' 天数据，满 2 天自动绘制走势折线图。</div>';
+    return '<div class="trendEmpty">已记录 ' + (series?.length || 0) + ' 天数据，满 2 天自动绘制对比折线图。</div>';
   }
+  const maxIdx = series[series.length - 1][0];
+  let pts;
+  if (rangeDays === 1) {
+    pts = series.slice(-2);
+  } else if (rangeDays === 7) {
+    pts = series.filter((p) => p[0] >= maxIdx - 6);
+  } else {
+    pts = series.slice(-30);
+  }
+  if (pts.length < 2) {
+    return '<div class="trendEmpty">该时间窗暂仅 1 次实测记录，次日更新后即可绘制折线。</div>';
+  }
+
   const w = 280;
-  const h = 56;
-  const padX = 4;
-  const padY = 6;
-  const vals = series.map((p) => p[1]);
+  const h = 62;
+  const padX = 8;
+  const padY = 8;
+  const vals = pts.map((p) => p[1]);
   const minV = Math.min(...vals);
   const maxV = Math.max(...vals);
   const spanV = maxV - minV || 1;
-  const minX = series[0][0];
-  const maxX = series[series.length - 1][0];
+  const minX = pts[0][0];
+  const maxX = pts[pts.length - 1][0];
   const spanX = maxX - minX || 1;
 
-  const coords = series.map(([idx, val]) => {
-    const x = padX + ((idx - minX) / spanX) * (w - 2 * padX);
-    const y = h - padY - ((val - minV) / spanV) * (h - 2 * padY);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
+  const xy = pts.map(([idx, val]) => [
+    padX + ((idx - minX) / spanX) * (w - 2 * padX),
+    h - padY - ((val - minV) / spanV) * (h - 2 * padY),
+  ]);
+  const coords = xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`);
 
   const firstDate = dates[minX]?.slice(5) || '';
   const lastDate = dates[maxX]?.slice(5) || '';
   const fmt = (v) => (v >= 10000 ? `${(v / 10000).toFixed(1)}万` : nf.format(v));
-  const area = `${coords[0].split(',')[0]},${h - padY} ${coords.join(' ')} ${coords[coords.length - 1].split(',')[0]},${h - padY}`;
+  const netUp = vals[vals.length - 1] >= vals[0];
+  const stroke = netUp ? '#97e8d6' : '#f49a9a';
+  const fill = netUp ? 'rgba(151,232,214,0.13)' : 'rgba(244,154,154,0.13)';
+  const area = `${xy[0][0].toFixed(1)},${h - padY} ${coords.join(' ')} ${xy[xy.length - 1][0].toFixed(1)},${h - padY}`;
+  const dots = pts.length <= 10
+    ? xy.map(([x, y]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.8" fill="${stroke}"/>`).join('')
+    : '';
+
+  const headLeft = rangeDays === 1
+    ? `单日变化（${firstDate} → ${lastDate}）`
+    : `近 ${rangeDays} 天走势（实测 ${pts.length} 天）`;
+  const headRight = rangeDays === 1
+    ? `${fmt(vals[0])} → ${fmt(vals[vals.length - 1])}`
+    : `${fmt(minV)} ～ ${fmt(maxV)}`;
 
   return (
     `<div class="trendChart">` +
-    `<div class="chartHead"><span>在读走势（${series.length} 天实测）</span><span>${fmt(minV)} ～ ${fmt(maxV)}</span></div>` +
+    `<div class="chartHead"><span>${headLeft}</span><span>${headRight}</span></div>` +
     `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="在读人数走势折线图">` +
     `<line x1="0" y1="${padY}" x2="${w}" y2="${padY}" stroke="#2f444c" stroke-dasharray="2 4"/>` +
     `<line x1="0" y1="${h - padY}" x2="${w}" y2="${h - padY}" stroke="#2f444c" stroke-dasharray="2 4"/>` +
-    `<polygon points="${area}" fill="rgba(151,232,214,0.12)"/>` +
-    `<polyline points="${coords.join(' ')}" fill="none" stroke="#97e8d6" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` +
+    `<polygon points="${area}" fill="${fill}"/>` +
+    `<polyline points="${coords.join(' ')}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` +
+    dots +
     `</svg>` +
     `<div class="chartAxis"><span>${firstDate}</span><span>${lastDate}</span></div>` +
     `</div>`
   );
 }
 
-export function renderTrendPanel(trends, id) {
+function windowMetric(t, rangeDays) {
+  if (rangeDays === 1) return { d: t.d1, p: t.p1, note: '' };
+  if (rangeDays === 7 && Number.isFinite(t.d7)) return { d: t.d7, p: t.p7, note: '' };
+  if (rangeDays === 30 && Number.isFinite(t.d30)) return { d: t.d30, p: t.p30, note: '' };
+  const s = t.series || [];
+  if (s.length < 2) return { d: null, p: null, note: '' };
+  const maxIdx = s[s.length - 1][0];
+  const sub = rangeDays === 7 ? s.filter((p) => p[0] >= maxIdx - 6) : s.slice(-30);
+  if (sub.length < 2) return { d: null, p: null, note: '' };
+  const base = sub[0][1];
+  const cur = sub[sub.length - 1][1];
+  const delta = cur - base;
+  const pctVal = base > 0 ? (100 * delta) / base : null;
+  const spanDays = Math.max(1, sub[sub.length - 1][0] - sub[0][0]);
+  return { d: delta, p: pctVal, note: `（近${spanDays}天）` };
+}
+
+export function renderTrendPanel(trends, id, rangeDays = 1) {
   const t = getTrend(trends, id);
   if (!t) {
     return '<div class="trendEmpty">正在积累该书的每日实测数据，次日采集完成后即可查看变化趋势。</div>';
   }
+  const activeRange = [1, 7, 30].includes(Number(rangeDays)) ? Number(rangeDays) : 1;
   const cols = [
-    { label: dayLabel(trends.latestDate), d: t.d1, p: t.p1 },
-    { label: '近 7 天', d: t.d7, p: t.p7 },
-    { label: '近 30 天', d: t.d30, p: t.p30 },
+    { range: 1, label: dayLabel(trends.latestDate), ...windowMetric(t, 1) },
+    { range: 7, label: '近 7 天', ...windowMetric(t, 7) },
+    { range: 30, label: '近 30 天', ...windowMetric(t, 30) },
   ];
   const cells = cols
     .map((c) => {
+      const isAct = c.range === activeRange;
+      const head = `${c.label}${c.note}`;
       if (!Number.isFinite(c.d)) {
-        return `<div class="tmCell"><small>${c.label}</small><b class="flat">积累中</b><em>—</em></div>`;
+        return `<button type="button" class="tmCell${isAct ? ' active' : ''}" data-range="${c.range}" aria-pressed="${isAct}"><small>${head}</small><b class="flat">积累中</b><em>点击切图</em></button>`;
       }
       const cls = deltaClass(c.d);
-      return `<div class="tmCell"><small>${c.label}</small><b class="${cls}">${shortDelta(c.d)}</b><em class="${cls}">${formatPct(c.p) || '—'}</em></div>`;
+      return `<button type="button" class="tmCell${isAct ? ' active' : ''}" data-range="${c.range}" aria-pressed="${isAct}"><small>${head}</small><b class="${cls}">${shortDelta(c.d)}</b><em class="${cls}">${formatPct(c.p) || '—'}</em></button>`;
     })
     .join('');
 
-  return `<div class="trendMetrics">${cells}</div>${buildSparkline(t.series, trends.dates || [])}`;
+  return `<div class="trendMetrics" role="tablist" aria-label="切换走势时间范围">${cells}</div>${buildSparkline(t.series, trends.dates || [], activeRange)}`;
 }
