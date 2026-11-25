@@ -19,7 +19,7 @@ button:focus-visible{outline:3px solid #3c8366;outline-offset:2px}
 .book:focus-within h3 a{color:#a63e63}.bookmeta .primary{text-decoration:none}.bookmeta .primary:focus-visible{text-decoration:underline}
 .introPop{line-height:1.58;padding:12px 15px}.introPop strong{margin-bottom:4px}
 .list.dense{gap:0}.dense .book{grid-template-columns:minmax(0,1fr) auto;border-radius:0;padding:9px 14px;gap:10px}.dense .book+.book{border-top:none}.dense .cover,.dense .blurb,.dense .cardTags,.dense .event,.dense .missing{display:none}.dense h3{font-size:16px}.dense .aud{grid-column:auto;align-self:center}.dense .aud b{font-size:16px}.viewtools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}.viewtools button{font-size:13px;padding:4px 9px}.viewtools button[aria-pressed=true]{background:var(--green);color:white}#rankState{font-size:13px;color:var(--mute)}#rankDate{font:inherit}
-</style><link rel="icon" href="./assets/otter.svg"><link rel="stylesheet" href="./assets/site.css?v=5"></head><body><header><div class="bar"><div class="brand"><img src="./assets/otter.svg" alt="" width="36" height="36">偷闲獭</div><span class="meta">番茄小说 · 个人检索</span></div></header>
+</style><link rel="icon" href="./assets/otter.svg"><link rel="stylesheet" href="./assets/site.css?v=6"></head><body><header><div class="bar"><div class="brand"><img src="./assets/otter.svg" alt="" width="36" height="36">偷闲獭</div><span class="meta">番茄小说 · 个人检索</span></div></header>
 <main><nav aria-label="发现作品" id="nav"></nav><div class="mast"><div><div class="mastHead"><h1 id="heading">搜作品</h1><button type="button" id="helpBtn" class="helpBtn" aria-expanded="false" aria-controls="modeHelp" hidden></button></div><p id="subtitle" class="mastSub"></p><div id="modeHelp" class="modeHelp" hidden></div><form class="search" id="searchForm"><input type="search" enterkeyhint="search" id="q" aria-label="搜作品" placeholder="书名、作者或简介"><button type="submit">搜索</button></form></div><div class="total">已收录 <b id="size">—</b> 本</div><div id="rankFields" hidden><div class="filterrow"><strong>榜单</strong><div class="opts" id="rankKinds"></div></div><div class="filterrow"><strong>采集日</strong><div class="opts"><select id="rankDate" aria-label="选择榜单采集日"></select><span id="rankState" role="status"></span><button id="rankRetry" hidden>重新加载</button></div></div></div><div id="sweepFields" class="modeFields" hidden><div class="filterrow"><strong>统计窗</strong><div class="opts" id="sweepWin"></div></div><div class="filterrow"><strong>范围</strong><div class="opts" id="sweepScope"></div></div><div class="filterrow"><strong>深度</strong><div class="opts" id="sweepDepth"></div></div><div class="filterrow"><strong>榜单</strong><div class="opts" id="sweepKind"></div></div><span class="modeNote" id="sweepState" role="status"></span></div><div id="debutFields" class="modeFields" hidden><div class="filterrow"><strong>首秀窗</strong><div class="opts" id="debutWin"></div></div><div class="filterrow"><strong>首秀源</strong><div class="opts" id="debutKind"></div></div><div class="filterrow"><strong>指定日</strong><div class="opts"><select id="day" aria-label="指定首秀日期"></select><span class="modeNote" id="debutState" role="status"></span></div></div></div></div><div class="quick"><button data-sheet="channel">频道</button><button data-sheet="category">主分类</button><button data-sheet="status">组合筛选</button><span id="brief"></span></div>
 <section class="filters" aria-label="检索条件"><div class="sheetTitle"><b>组合筛选</b><button id="closeSheet">关闭</button></div>
 
@@ -35,7 +35,7 @@ button:focus-visible{outline:3px solid #3c8366;outline-offset:2px}
 <div class="filterrow selection"><strong>已选条件</strong><div class="opts"><div class="opts" id="selected"></div><button id="reset" class="quiet">清空全部</button></div></div><div class="viewtools"><button id="rankMore" hidden aria-expanded="false">更多筛选</button><button id="saveFilter">保存常用筛选</button><button id="restoreFilter" hidden>使用常用筛选</button><span id="savedNotice" role="status"></span></div><div id="warning" class="notice" role="status"></div><button class="sheetApply" id="applySheet">查看结果</button>
 </section>
 
-<div class="results"><div><h2 id="count" aria-live="polite"></h2><small id="introScope" hidden></small></div><div class="viewtools"><label>排序 <select id="sort"></select></label><button id="cardView" aria-pressed="true">卡片</button><button id="denseView" aria-pressed="false">紧凑</button></div></div>
+<div class="results"><div><h2 id="count" aria-live="polite"></h2><small id="introScope" hidden></small></div><div class="viewtools"><label>排序 <select id="sort"></select></label><button id="cardView" aria-pressed="true">卡片</button><button id="denseView" aria-pressed="false">紧凑</button><button type="button" id="quickReset" class="quickReset" hidden>重置筛选</button></div></div>
 <section class="list" id="list" aria-label="检索结果"></section>
 <div id="introPop" class="introPop" role="region" aria-label="完整简介" tabindex="0" hidden></div>
 <div id="wxGuide" class="wxModal" hidden role="dialog" aria-modal="true" aria-labelledby="wxTitle">
@@ -446,7 +446,12 @@ function showSelection(f){
   if(trendFilter&&mode!=='rank')chip('走势 '+trendStateLabel(trendFilter),()=>{trendFilter=''});
   if(f.raw)chip('关键词 '+f.raw,()=>{el('q').value='';submitted=''});
   if(mode==='debut'&&f.day)chip('首秀 '+f.day,()=>{el('day').value='';rebuildDebut()});
-  if(!node.children.length)node.textContent='不限';el('reset').disabled=!node.children.length;
+  const hasModeSubFilter=(mode==='sweep'&&(sweepWin!==7||sweepScope!=='all'||sweepDepth!==100||sweepKind!=='all'))
+    ||(mode==='debut'&&(debutWin!==7||debutKind!=='all'));
+  const canReset=Boolean(node.children.length)||hasModeSubFilter;
+  if(!node.children.length)node.textContent='不限';
+  el('reset').disabled=!canReset;
+  el('quickReset').hidden=!canReset;
 }
 function isDefaultUnfilteredSearch(){
   return mode==='search'&&!submitted&&!category&&!channel&&!status&&!age&&!trendFilter&&heat==='all'&&words==='all'&&!selectedTags.size&&(el('sort').value==='hot'||!hotOrder.size&&el('sort').value==='reads');
@@ -748,6 +753,7 @@ function togglePanel(open){el('tagpanel').hidden=!open;el('more').setAttribute('
 el('more').onclick=()=>togglePanel(el('tagpanel').hidden);el('tagSearch').oninput=renderTags;
 el('clearTags').onclick=()=>{selectedTags.clear();renderTags();applyFilters()};
 el('reset').onclick=()=>resetFilters('all');
+el('quickReset').onclick=()=>resetFilters('all');
 el('helpBtn').onclick=()=>{const open=el('modeHelp').hidden;el('modeHelp').hidden=!open;el('helpBtn').setAttribute('aria-expanded',String(open));};
 el('day').onchange=()=>{rebuildDebut();paintControls();renderTags();applyFilters()};
 for(const id of ['lo','hi','minread','maxread','sort'])el(id).addEventListener('input',e=>{if(!e.isComposing)applyFilters()});
