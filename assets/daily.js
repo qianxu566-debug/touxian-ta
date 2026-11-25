@@ -1,4 +1,4 @@
-import { compressed, dayString } from './reader.js';
+import { compressed, dayString } from './reader.js?v=5';
 
 const nf = new Intl.NumberFormat('zh-CN');
 
@@ -46,7 +46,7 @@ export function shortDelta(delta) {
   if (!Number.isFinite(delta)) return '';
   const sign = delta > 0 ? '+' : delta < 0 ? '-' : '';
   const abs = Math.abs(delta);
-  if (abs >= 10000) return `${sign}${(abs / 10000).toFixed(2).replace(/\.?0+$/, '')} 万`;
+  if (abs >= 10000) return `${sign}${(abs / 10000).toFixed(1).replace(/\.0$/, '')} 万`;
   return `${sign}${nf.format(abs)}`;
 }
 
@@ -247,8 +247,8 @@ const BADGE_NAMES = {
   6: '推荐榜',
 };
 
-export function renderRankBadges(radar, id) {
-  const list = radar?.badges?.[String(id)];
+export function renderRankBadges(radar, id, fallbackList = null) {
+  const list = radar?.badges?.[String(id)] || fallbackList;
   if (!Array.isArray(list) || !list.length) return '';
   const items = list
     .map(([grp, totalDays, firstMMDD, exactStart, bestPos, top1Days, top10Days, onToday, dropMMDD]) => {

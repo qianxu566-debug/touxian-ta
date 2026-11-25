@@ -37,32 +37,38 @@ cwd = Path.cwd().resolve()
 if out.resolve() != cwd:
     shutil.copyfile('index.html', out / 'index.html')
     shutil.copytree('assets', out / 'assets', dirs_exist_ok=True)
-    if catalog_src.exists():
-        shutil.copyfile(catalog_src, out / 'catalog.gz')
     for rel in ['data/book-dates.json.gz', 'data/hot.json']:
         if Path(rel).exists():
             shutil.copyfile(rel, out / rel)
 
 # 0. Load catalog_map early so compact history snapshots can omit redundant strings
+def best_cover_url(book_obj, now_s):
+    best_u = ''
+    best_exp = 0
+    for k in ('longCoverUrl', 'freshCoverUrl', 'coverUrl'):
+        u = book_obj.get(k) or ''
+        if u.startswith('https://'):
+            qs = urlparse.parse_qs(urlparse.urlsplit(u).query)
+            e = int(qs.get('x-expires', [str(int(now_s) + 86400)])[0])
+            if e > now_s and e > best_exp:
+                best_exp = e
+                best_u = u
+    return best_u, best_exp
+
+
+cat = {}
 catalog_map = {}
 valid_covers = 0
 total_books = 0
+now_s = time.time()
 if catalog_src.exists():
     with gzip.open(catalog_src, 'rt', encoding='utf-8') as fh:
         cat = json.load(fh)
-    now_s = time.time()
     for b in cat.get('books', []):
         total_books += 1
         bid = str(b['id'])
         catalog_map[bid] = b
-        best_exp = 0
-        for k in ('longCoverUrl', 'freshCoverUrl', 'coverUrl'):
-            u = b.get(k) or ''
-            if u.startswith('https://'):
-                qs = urlparse.parse_qs(urlparse.urlsplit(u).query)
-                e = int(qs.get('x-expires', [str(int(now_s) + 86400)])[0])
-                if e > best_exp:
-                    best_exp = e
+        _, best_exp = best_cover_url(b, now_s)
         if best_exp > now_s:
             valid_covers += 1
 
@@ -792,6 +798,183 @@ radar_payload = {
     )
 )
 
+# 4. Write slimmed frontend catalog.gz & instant boot payload (data/boot.json.gz)
+slim_books = []
+seen_slim = set()
+for b in cat.get('books', []):
+    bid = str(b.get('id') or '')
+    if not bid or bid in seen_slim:
+        continue
+    seen_slim.add(bid)
+    cover_u, _ = best_cover_url(b, now_s)
+    item = {
+        'id': bid,
+        'title': b.get('title') or '',
+        'author': b.get('author') or '',
+        'intro': (b.get('intro') or '').strip(),
+        'status': b.get('status') or '',
+        'words': b.get('words'),
+        'readers': b.get('readers'),
+        'tags': b.get('tags') or [],
+        'primary': b.get('primary') or [],
+        'channel': b.get('channel') or '',
+        'coverUrl': cover_u,
+    }
+    if b.get('readersText'):
+        item['readersText'] = b['readersText']
+    if b.get('officialTags'):
+        item['officialTags'] = b['officialTags']
+    if b.get('lastUpdate'):
+        item['lastUpdate'] = b['lastUpdate']
+    if b.get('events'):
+        item['events'] = b['events']
+    if b.get('channel') == '共用' and (b.get('channelEvidence') or {}).get('kind') == 'official-detail':
+        item['sharedOfficial'] = 1
+    slim_books.append(item)
+
+slim_cat_bytes = 0
+if out.resolve() != cwd and catalog_src.exists():
+    slim_payload = {
+        'updated': cat.get('updated'),
+        'coverage': cat.get('coverage'),
+        'refresh': cat.get('refresh'),
+        'books': slim_books,
+    }
+    slim_gz = gzip.compress(
+        json.dumps(slim_payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8'),
+        compresslevel=6,
+        mtime=0,
+    )
+    (out / 'catalog.gz').write_bytes(slim_gz)
+    slim_cat_bytes = len(slim_gz)
+elif (out / 'catalog.gz').exists():
+    slim_cat_bytes = (out / 'catalog.gz').stat().st_size
+
+hot_ids = []
+hot_path = Path('data/hot.json')
+if hot_path.exists():
+    try:
+        hot_ids = json.loads(hot_path.read_text(encoding='utf-8')).get('ids') or []
+    except Exception:
+        hot_ids = []
+hot_idx = {str(bid): idx for idx, bid in enumerate(hot_ids)}
+
+
+def eff_readers(book_item):
+    tr = trends_books.get(book_item['id'])
+    if tr and isinstance(tr[0], (int, float)):
+        return tr[0]
+    return book_item.get('readers')
+
+
+ge8k_books = [
+    b for b in slim_books
+    if isinstance(eff_readers(b), (int, float)) and eff_readers(b) >= 8000
+]
+ge8k_books.sort(
+    key=lambda b: (hot_idx.get(b['id'], 10**9), -(eff_readers(b) or 0), b['id'])
+)
+
+boot_books = []
+for b in ge8k_books[:240]:
+    item = dict(b)
+    bid = item['id']
+    st = (book_dates.get(bid) or {}).get('start')
+    if st:
+        item['start'] = st
+    tr = trends_books.get(bid)
+    if tr:
+        item['_tRaw'] = tr
+    bg = badges.get(bid)
+    if bg:
+        item['_badges'] = bg
+    boot_books.append(item)
+
+category_channels = {}
+main_names = set()
+for r in cat.get('coverage') or []:
+    cname = r.get('category')
+    if not cname:
+        continue
+    category_channels.setdefault(cname, set()).add(r.get('channel'))
+    if r.get('kind') == '主分类':
+        main_names.add(cname)
+
+
+def matches_channel(b, ch):
+    return not ch or b.get('channel') == ch or b.get('channel') == '共用'
+
+
+def primary_for(b):
+    if b.get('primary'):
+        return b['primary']
+    return [t for t in (b.get('tags') or []) if t in main_names]
+
+
+def tags_for(b, ch=''):
+    names = set()
+    for t in list(b.get('tags') or []) + list(primary_for(b)):
+        routes = category_channels.get(t)
+        if t != '全部分类' and (not ch or not routes or ch in routes):
+            names.add(t)
+    for c, lst in (b.get('officialTags') or {}).items():
+        if not ch or not c or c == ch:
+            for t in lst:
+                names.add(t)
+    return names
+
+
+cat_counts = {}
+tag_counts = {}
+for ch_key, ch_val in (('all', ''), ('男频', '男频'), ('女频', '女频')):
+    cm = {}
+    tm = {}
+    for b in ge8k_books:
+        if not matches_channel(b, ch_val):
+            continue
+        for cname in primary_for(b):
+            cm[cname] = cm.get(cname, 0) + 1
+        for tname in tags_for(b, ch_val):
+            tm[tname] = tm.get(tname, 0) + 1
+    cat_counts[ch_key] = [[k, v] for k, v in sorted(cm.items(), key=lambda kv: (-kv[1], kv[0]))]
+    tag_counts[ch_key] = [[k, v] for k, v in sorted(tm.items(), key=lambda kv: (-kv[1], kv[0]))[:150]]
+
+ge10k_count = sum(1 for b in ge8k_books if (eff_readers(b) or 0) >= 10000)
+intro_total_count = sum(1 for b in ge8k_books if b.get('intro'))
+boot_payload = {
+    'updated': cat.get('updated'),
+    'coverage': cat.get('coverage'),
+    'latestDate': latest_date,
+    'prevDate': prev_date_str,
+    'dates': series_dates,
+    'latestRankDate': latest_rank_date,
+    'stats': {
+        'totalBooks': len(ge8k_books),
+        'ge10k': ge10k_count,
+        'introTotal': intro_total_count,
+        'validCovers': valid_covers,
+        'observed': trends_payload['stats']['observed'],
+        'paired1': paired1,
+        'paired7': paired7,
+        'wordsPaired1': words_paired1,
+        'rankDays': len(win_dates),
+        'sweepCount': len(sweep_books),
+        'debutCount': len(debut_books),
+        'datedBooks': len(book_dates),
+    },
+    'catCounts': cat_counts,
+    'tagCounts': tag_counts,
+    'books': boot_books,
+}
+
+(out / 'data' / 'boot.json.gz').write_bytes(
+    gzip.compress(
+        json.dumps(boot_payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8'),
+        compresslevel=6,
+        mtime=0,
+    )
+)
+
 print(
     json.dumps(
         {
@@ -807,6 +990,8 @@ print(
             'stats': trends_payload['stats'],
             'trendsBytes': (out / 'data' / 'trends.json.gz').stat().st_size,
             'radarBytes': (out / 'data' / 'radar.json.gz').stat().st_size,
+            'bootBytes': (out / 'data' / 'boot.json.gz').stat().st_size,
+            'slimCatalogBytes': slim_cat_bytes,
         },
         ensure_ascii=False,
     )

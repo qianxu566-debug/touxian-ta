@@ -15,6 +15,9 @@ export function mobilePlatform(){
   if(/Android/i.test(navigator.userAgent))return 'android';
   return '';
 }
+export function isWeChat(){
+  return /\bMicroMessenger\//i.test(navigator.userAgent);
+}
 export function appLink(id,platform){
   if(!/^\d+$/.test(id)||!['ios','android'].includes(platform))return '';
   // The novel reader route in Fanqie's share-v2 page uses camel-case bookId.
