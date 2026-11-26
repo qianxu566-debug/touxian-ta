@@ -60,6 +60,9 @@ function absorbBook(row) {
     next.words = row.words;
     if (row.observed) next.wordsObserved = row.observed;
   }
+  if (Number.isSafeInteger(row.lastUpdate) && row.lastUpdate > 946684800) {
+    if (!next.lastUpdate || row.lastUpdate > next.lastUpdate) next.lastUpdate = row.lastUpdate;
+  }
   if (Number.isFinite(row.readers) && row.readers >= 0) {
     // Only overwrite readers if newer or missing
     if (!old?.observed || !row.observed || row.observed >= old.observed) {
@@ -237,12 +240,14 @@ async function fetchRanksAndBoards() {
           if (!/^\d+$/.test(id) || !pos) continue;
           const readers = /^\d+$/.test(String(b.read_count)) ? Number(b.read_count) : null;
           const words = /^\d+$/.test(String(b.wordNumber)) ? Number(b.wordNumber) : null;
+          const rawLpt = /^\d+$/.test(String(b.lastChapterUpdateTime)) ? Number(b.lastChapterUpdateTime) : null;
+          const lastUpdate = rawLpt && rawLpt > 946684800 ? rawLpt : undefined;
           const status = ({ '0': '已完结', '1': '连载中' })[String(b.creationStatus)] || '';
           const title = decodeRank(b.bookName, font);
           const author = decodeRank(b.author, font);
           const intro = decodeRank(b.abstract, font).trim();
           const coverUrl = sanitizeImageUrl(b.thumbUri);
-          rows.push({ id, pos, readers, words, status, title, author, intro, coverUrl });
+          rows.push({ id, pos, readers, words, ...(lastUpdate ? { lastUpdate } : {}), status, title, author, intro, coverUrl });
 
           if ((readers ?? 0) >= MIN_READERS || books.has(id)) {
             const added = absorbBook({
@@ -252,6 +257,7 @@ async function fetchRanksAndBoards() {
               intro,
               readers,
               words,
+              ...(lastUpdate ? { lastUpdate } : {}),
               status,
               primary: [job.category],
               channel: job.gender === '1' ? '男频' : '女频',
@@ -275,23 +281,16 @@ async function fetchRanksAndBoards() {
     { shouldStop: () => Boolean(rateLimited) }
   );
 
-  // 4 special boards: 巅峰(3), 黑马(4), 热搜(5), 推荐(6)
-  for (const [mold, side] of [
-    [3, 0],
-    [4, 13],
-    [5, 12],
-    [6, 10],
-  ]) {
-    if (rateLimited) break;
+  // 2 special boards: 巅峰(3, top 30) & 黑马(4, 男频50 + 女频50 = up to 100)
+  // (热搜=5 & 推荐=6 discontinued)
+  delete snap.boards[5];
+  delete snap.boards[6];
+  if (!rateLimited) {
     try {
       await sleep(200);
-      const url = side
-        ? `https://api-lf.fanqiesdk.com/api/novel/channel/homepage/rank/rank_list/v2/?aid=13&limit=30&offset=0&side_type=${side}&type=1`
-        : `https://fanqienovel.com/api/author/misc/top_book_list/v1/?limit=30&offset=0`;
-      const { data } = await fetchJson(url);
-      if (data.code !== 0) throw new Error(`code=${data.code}`);
-      const list = side ? data.data?.result : data.book_list;
-      if (!Array.isArray(list) || !list.length) throw new Error('空榜单');
+      const { data } = await fetchJson('https://fanqienovel.com/api/author/misc/top_book_list/v1/?limit=30&offset=0');
+      const list = data.book_list;
+      if (data.code !== 0 || !Array.isArray(list) || !list.length) throw new Error(`code=${data.code}`);
       const observed = new Date().toISOString();
       const rows = list
         .filter((b) => typeof b.book_id === 'string' && /^\d+$/.test(b.book_id) && b.book_name)
@@ -300,8 +299,7 @@ async function fetchRanksAndBoards() {
           const rawScore = Number(b.score);
           const score = Number.isFinite(rawScore) && rawScore > 0 && rawScore <= 10 ? Math.round(rawScore * 10) / 10 : undefined;
           const coverUrl = sanitizeImageUrl(b.thumb_url);
-          const primary = side ? [] : [b.category].filter(Boolean);
-          const tags = side ? (Array.isArray(b.category_v2) ? b.category_v2 : []) : [];
+          const primary = [b.category].filter(Boolean);
           if ((readers ?? 0) >= MIN_READERS || books.has(b.book_id)) {
             absorbBook({
               id: b.book_id,
@@ -312,7 +310,7 @@ async function fetchRanksAndBoards() {
               score,
               coverUrl,
               primary,
-              tags,
+              tags: [],
               observed,
             });
           }
@@ -326,13 +324,87 @@ async function fetchRanksAndBoards() {
             coverUrl,
             intro: b.abstract,
             primary,
-            tags,
+            tags: [],
           };
         });
-      snap.boards[mold] = { observed, rows };
+      snap.boards[3] = { observed, rows };
     } catch (e) {
       if (e.rateLimited) rateLimited = e.message;
-      console.warn(`[board ${mold}] ${e.message}`);
+      console.warn(`[board 3] ${e.message}`);
+    }
+  }
+
+  if (!rateLimited) {
+    try {
+      const observed = new Date().toISOString();
+      const byId = new Map();
+      for (const [typeVal, chName] of [
+        [1, '男频'],
+        [0, '女频'],
+      ]) {
+        const seenCh = new Set();
+        let chPos = 0;
+        for (const offset of [0, 30]) {
+          if (rateLimited) break;
+          await sleep(180);
+          const url = `https://api-lf.fanqiesdk.com/api/novel/channel/homepage/rank/rank_list/v2/?aid=13&limit=30&offset=${offset}&side_type=13&type=${typeVal}`;
+          const { data } = await fetchJson(url);
+          if (data.code !== 0) throw new Error(`type=${typeVal} off=${offset} code=${data.code}`);
+          const list = data.data?.result;
+          if (!Array.isArray(list) || !list.length) break;
+          for (const b of list) {
+            if (typeof b.book_id !== 'string' || !/^\d+$/.test(b.book_id) || !b.book_name) continue;
+            if (seenCh.has(b.book_id)) continue;
+            seenCh.add(b.book_id);
+            chPos++;
+            const readers = /^\d+$/.test(String(b.read_count)) ? Number(b.read_count) : null;
+            const rawScore = Number(b.score);
+            const score = Number.isFinite(rawScore) && rawScore > 0 && rawScore <= 10 ? Math.round(rawScore * 10) / 10 : undefined;
+            const coverUrl = sanitizeImageUrl(b.thumb_url);
+            const tags = Array.isArray(b.category_v2) ? b.category_v2 : [];
+            const statusStr = ({ '0': '已完结', '1': '连载中' })[String(b.creation_status)] || '';
+            if ((readers ?? 0) >= MIN_READERS || books.has(b.book_id)) {
+              absorbBook({
+                id: b.book_id,
+                title: b.book_name,
+                author: b.author,
+                intro: b.abstract,
+                readers,
+                ...(statusStr ? { status: statusStr } : {}),
+                score,
+                coverUrl,
+                primary: [],
+                tags,
+                channel: chName,
+                observed,
+              });
+            }
+            const existing = byId.get(b.book_id);
+            if (existing) {
+              existing.pos = Math.min(existing.pos, chPos);
+              if (existing.ch !== chName) existing.ch = '共用';
+            } else {
+              byId.set(b.book_id, {
+                id: b.book_id,
+                title: b.book_name,
+                author: b.author,
+                pos: chPos,
+                ch: chName,
+                readers,
+                ...(score !== undefined ? { score } : {}),
+                coverUrl,
+                intro: b.abstract,
+                primary: [],
+                tags,
+              });
+            }
+          }
+        }
+      }
+      if (byId.size) snap.boards[4] = { observed, rows: [...byId.values()] };
+    } catch (e) {
+      if (e.rateLimited) rateLimited = e.message;
+      console.warn(`[board 4] ${e.message}`);
     }
   }
 

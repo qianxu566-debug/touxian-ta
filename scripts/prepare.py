@@ -155,13 +155,16 @@ for day_str in kept_rank_dates:
                 continue
             bid = str(r.get('id') or '')
             if bid in catalog_ids and catalog_map[bid].get('title'):
-                compact_rows.append({
+                c_row = {
                     'id': bid,
                     'pos': pos,
                     'readers': r.get('readers'),
                     'words': r.get('words'),
                     'status': r.get('status') or '',
-                })
+                }
+                if isinstance(r.get('lastUpdate'), int) and r['lastUpdate'] > 946684800:
+                    c_row['lastUpdate'] = r['lastUpdate']
+                compact_rows.append(c_row)
             else:
                 sc_val, sc_cnt = resolve_score(bid, r)
                 c_row = {
@@ -175,6 +178,8 @@ for day_str in kept_rank_dates:
                     'intro': r.get('intro') or '',
                     'coverUrl': r.get('coverUrl') or '',
                 }
+                if isinstance(r.get('lastUpdate'), int) and r['lastUpdate'] > 946684800:
+                    c_row['lastUpdate'] = r['lastUpdate']
                 if sc_val is not None:
                     c_row['score'] = sc_val
                     if sc_cnt > 0:
@@ -189,11 +194,14 @@ for day_str in kept_rank_dates:
         for r in bdata.get('rows') or []:
             bid = str(r.get('id') or '')
             if bid in catalog_ids and catalog_map[bid].get('title'):
-                b_rows.append({
+                b_row = {
                     'id': bid,
                     'pos': r.get('pos'),
                     'readers': r.get('readers'),
-                })
+                }
+                if r.get('ch'):
+                    b_row['ch'] = r['ch']
+                b_rows.append(b_row)
             else:
                 sc_val, sc_cnt = resolve_score(bid, r)
                 b_copy = dict(r)
@@ -491,6 +499,7 @@ for d_str in all_rank_dates:
                     'coverUrl': r.get('coverUrl') or '',
                     'readers': rc if isinstance(rc, int) else None,
                     'words': r.get('words') if isinstance(r.get('words'), int) else None,
+                    'lastUpdate': r.get('lastUpdate') if isinstance(r.get('lastUpdate'), int) and r['lastUpdate'] > 946684800 else None,
                     'status': r.get('status') or '',
                     'channel': ch,
                     'primary': [cat_name] if cat_name else [],
@@ -510,6 +519,8 @@ for d_str in all_rank_dates:
                     m['readers'] = rc
                 if isinstance(r.get('words'), int) and r['words'] > 0:
                     m['words'] = r['words']
+                if isinstance(r.get('lastUpdate'), int) and r['lastUpdate'] > 946684800:
+                    m['lastUpdate'] = max(m.get('lastUpdate') or 0, r['lastUpdate'])
                 if r.get('status'):
                     m['status'] = r['status']
                 if cat_name and cat_name not in m['primary']:
@@ -996,7 +1007,9 @@ for ch_key, ch_val in (('all', ''), ('男频', '男频'), ('女频', '女频')):
 ge10k_count = sum(1 for b in ge8k_books if (eff_readers(b) or 0) >= 10000)
 intro_total_count = sum(1 for b in ge8k_books if b.get('intro'))
 scored_count = sum(1 for b in ge8k_books if isinstance(b.get('score'), (int, float)) and b['score'] > 0)
+updated_count = sum(1 for b in ge8k_books if isinstance(b.get('lastUpdate'), int) and b['lastUpdate'] > 946684800)
 trends_payload['stats']['scoredBooks'] = scored_count
+trends_payload['stats']['updatedBooks'] = updated_count
 (out / 'data' / 'trends.json.gz').write_bytes(
     gzip.compress(
         json.dumps(trends_payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8'),
@@ -1026,6 +1039,7 @@ boot_payload = {
         'debutCount': len(debut_books),
         'datedBooks': len(slim_book_dates),
         'scoredBooks': scored_count,
+        'updatedBooks': updated_count,
     },
     'catCounts': cat_counts,
     'tagCounts': tag_counts,
