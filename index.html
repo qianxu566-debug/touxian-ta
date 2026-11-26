@@ -9,17 +9,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=14">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=14">
+<link rel="icon" href="./assets/otter.svg?v=15">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=15">
 <style>[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="./assets/site.css?v=14">
+<link rel="stylesheet" href="./assets/site.css?v=15">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=14" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=15" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
+    <button type="button" id="appDlBtn" class="appDlBtn" hidden aria-haspopup="dialog" aria-controls="appModal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg><span id="appDlLbl">下载 App</span></button>
   </div>
 </header>
 
@@ -220,16 +221,36 @@
     </div>
   </div>
 
+  <div id="appModal" class="wxModal" hidden role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+    <div class="wxCard appCard">
+      <div id="appModalWxTip" class="wxTipTop" hidden><span>微信内会拦截安装包下载</span><span class="wxArrow">请点右上角 ··· ↗</span></div>
+      <div class="appHead">
+        <img src="./assets/otter.svg?v=15" alt="" width="40" height="40">
+        <div>
+          <h3 id="appModalTitle">偷闲獭 App</h3>
+          <div class="appSub"><span class="appVerPill" id="appModalMeta">Android v2.0.1 · 仅 65 KB</span></div>
+        </div>
+      </div>
+      <ul class="appPerks">
+        <li><strong>桌面秒开</strong>：不用反复切浏览器输网址，找书直达番茄 App</li>
+        <li><strong>双源容灾</strong>：Cloudflare / GitHub 双线路自动切换不掉线</li>
+        <li><strong>极轻纯净</strong>：仅 65 KB、零广告零后台，网页更新即自动同步</li>
+      </ul>
+      <div id="appModalBody"></div>
+      <button type="button" id="appModalClose" class="wxClose">关闭</button>
+    </div>
+  </div>
+
   <div class="pager"><button id="prev">上一页</button><label>第 <input class="pageinput" id="pageInput" aria-label="跳转页码" type="number" value="1" min="1"> 页</label><span id="pages"></span><button id="go">跳转</button><button id="next">下一页</button></div>
   <details class="coverage"><summary>实际收录范围与更新方式</summary><div id="coverage"></div></details>
 </main>
 
-<footer>偷闲獭 · 番茄作品检索 · <a href="https://github.com/qianxu566-debug/touxian-ta/tree/main/scripts">更新程序与许可</a></footer>
+<footer>偷闲獭 · 番茄作品检索 · <a href="https://github.com/qianxu566-debug/touxian-ta/tree/main/scripts">更新程序与许可</a><span id="footAppWrap" hidden> · <button type="button" id="footAppBtn" class="footLinkBtn">下载安卓 App</button></span></footer>
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=14';
-import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat} from './assets/reader.js?v=14';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=15';
+import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=15';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -1041,6 +1062,43 @@ el('wxCopyBtn').onclick=()=>{
 };
 el('wxCloseBtn').onclick=()=>{el('wxGuide').hidden=true;};
 el('wxGuide').onclick=e=>{if(e.target===el('wxGuide'))el('wxGuide').hidden=true;};
+const APK_URL='./assets/touxianta-v2.0.1.apk', APK_NAME='偷闲獭-v2.0.1.apk', SITE_SHORT_URL='https://touxianta.pages.dev/';
+function openAppModal(){
+  const wx=isWeChat(), plat=mobilePlatform();
+  el('appModalWxTip').hidden=!wx;
+  if(wx){
+    el('appModalMeta').textContent='Android v2.0.1 · 仅 65 KB';
+    el('appModalBody').innerHTML='<p class="wxDesc">微信内置浏览器会拦截 <code>.apk</code> 安装包下载。请点击右上角 <strong>···</strong> 选择「<strong>在默认浏览器中打开</strong>」，再点顶部「下载 App」即可 1 秒下载安装。</p><div class="wxBtns"><button type="button" class="wxPrimary" id="appCopyUrlBtn">复制主页短链</button></div><small id="appCopyState" class="appNote">短链：'+esc(SITE_SHORT_URL)+'</small>';
+  }else if(plat==='ios'){
+    el('appModalMeta').textContent='iOS 桌面全屏版 · 免下载';
+    el('appModalBody').innerHTML='<ol class="iosSteps"><li>点击 Safari 底部工具栏的 <strong>「分享」</strong> 按钮（方框向上箭头）</li><li>向下滑动，选择 <strong>「添加到主屏幕」</strong></li><li>点击右上角 <strong>「添加」</strong>，即可像 App 一样从桌面全屏秒开</li></ol><small class="appNote">注：当前仅提供 Android APK 安装包，iPhone / iPad 添加到主屏幕可获得同等无地址栏体验。</small>';
+  }else if(plat==='android'){
+    el('appModalMeta').textContent='Android v2.0.1 · 仅 65 KB';
+    el('appModalBody').innerHTML='<div class="wxBtns"><a class="wxPrimary" href="'+APK_URL+'" download="'+APK_NAME+'">立即下载安卓版（65 KB）</a></div><small class="appNote">安装时若系统提示「未知来源应用」，允许本次安装即可；后续网页迭代自动生效，无需重装。</small>';
+  }else{
+    el('appModalMeta').textContent='Android v2.0.1 · 仅 65 KB';
+    el('appModalBody').innerHTML='<div class="wxBtns"><a class="wxPrimary" href="'+APK_URL+'" download="'+APK_NAME+'">下载安卓安装包（65 KB）</a><button type="button" id="appCopyUrlBtn">复制手机短链</button></div><small id="appCopyState" class="appNote">也可手机浏览器直接访问 '+esc(SITE_SHORT_URL)+' 一键下载安装。</small>';
+  }
+  const cp=el('appCopyUrlBtn');
+  if(cp){
+    cp.onclick=()=>copyBookTitle(SITE_SHORT_URL).then(ok=>{
+      const st=el('appCopyState');
+      if(st)st.textContent=ok?'已复制短链 '+SITE_SHORT_URL+'，去手机浏览器粘贴打开即可':'复制失败，请手动访问 '+SITE_SHORT_URL;
+    });
+  }
+  el('appModal').hidden=false;
+}
+el('appModalClose').onclick=()=>{el('appModal').hidden=true;};
+el('appModal').onclick=e=>{if(e.target===el('appModal'))el('appModal').hidden=true;};
+if(!isStandaloneApp()){
+  const isIos=!isWeChat()&&mobilePlatform()==='ios';
+  el('appDlLbl').textContent=isIos?'装到桌面':'下载 App';
+  el('footAppBtn').textContent=isIos?'添加到桌面':'下载安卓 App (65 KB)';
+  el('appDlBtn').hidden=false;
+  el('footAppWrap').hidden=false;
+  el('appDlBtn').onclick=openAppModal;
+  el('footAppBtn').onclick=openAppModal;
+}
 el('count').tabIndex=-1;
 listing.addEventListener('click',e=>{
   const card=e.target.closest('article.book');if(!card)return;
@@ -1088,6 +1146,7 @@ listing.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     el('wxGuide').hidden=true;
+    el('appModal').hidden=true;
     if(!el('tagpanel').hidden){togglePanel(false);return;}
     if(!el('catpanel').hidden){toggleCats(false);el('moreCats').focus();}
     closeSheet();
