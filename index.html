@@ -9,15 +9,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=13">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=13">
+<link rel="icon" href="./assets/otter.svg?v=14">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=14">
 <style>[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="./assets/site.css?v=13">
+<link rel="stylesheet" href="./assets/site.css?v=14">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=13" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=14" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
   </div>
@@ -42,14 +42,12 @@
 
       <div class="filterrow catRow catCollapsed" id="catRow">
         <div class="filterHead">
-          <button type="button" class="catHeadBtn" id="moreCats" aria-controls="catpanel" aria-expanded="false">
-            <strong>主分类</strong>
-            <span class="catMeta" id="catMeta"><span class="grpVal" id="catSum">全部</span><span class="catAct" id="catAct">展开</span><span class="catChevron">▾</span></span>
-          </button>
+          <strong>主分类</strong>
+          <button type="button" class="secToggle" id="moreCats" aria-expanded="false" aria-controls="catpanel">展开全部 ▾</button>
         </div>
+        <div class="opts" id="category"></div>
         <div id="catpanel" hidden>
-          <div class="opts" id="category"></div>
-          <div id="allCats" class="opts" hidden></div>
+          <div id="allCats" class="opts"></div>
           <div class="panelend"><button type="button" class="secToggle" id="closeCats">收起分类 ▴</button></div>
         </div>
       </div>
@@ -230,8 +228,8 @@
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=13';
-import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat} from './assets/reader.js?v=13';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=14';
+import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat} from './assets/reader.js?v=14';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -633,7 +631,6 @@ compact.addEventListener('change',()=>{
 });
 function updateGroupSummaries(){
   const setSum=(id,val,isOn)=>{const n=el(id);if(!n)return;n.textContent=val;n.closest('.grpMeta, .catMeta')?.classList.toggle('on',Boolean(isOn));};
-  setSum('catSum',category||'全部',Boolean(category));
   const scLabel=scoreFilter?(scoreChoices.find(x=>x[0]===scoreFilter)?.[1]||scoreFilter+' 分以上'):'不限';
   setSum('scoreSum',scLabel,Boolean(scoreFilter));
   const hLabel=heat==='custom'?'自定义':(heatRanges.find(x=>x[0]===heat)?.[1]||'不限');
@@ -672,9 +669,19 @@ function paintControls(){
     if(category&&(mode!=='rank'||!rankBusy)&&!counts.has(category))category='';
   }
   const choose=value=>{urlNotice='';category=value;paintControls();applyFilters()};
-  controls('category',[['','全部'],...ordered.map(n=>[n,n])],category,choose);
-  el('allCats').replaceChildren();el('allCats').hidden=true;
-  el('moreCats').hidden=false;
+  let preview=ordered.slice(0,5);
+  if(category&&ordered.includes(category)&&!preview.includes(category)){
+    preview=[...ordered.slice(0,4),category];
+  }
+  const previewSet=new Set(preview);
+  const rest=ordered.filter(n=>!previewSet.has(n));
+  controls('category',[['','全部'],...preview.map(n=>[n,n])],category,choose);
+  controls('allCats',rest.map(n=>[n,n]),category,choose);
+  const hasMoreCats=rest.length>0;
+  el('moreCats').hidden=!hasMoreCats;
+  if(!hasMoreCats&&!el('catpanel').hidden)toggleCats(false);
+  const catOpen=!el('catpanel').hidden;
+  el('moreCats').textContent=catOpen?'收起 ▴':'展开全部 ('+ordered.length+') ▾';
   controls('channel',[...(mode==='rank'&&mold<4?[]:[['','全部']]),['男频','男频'],['女频','女频']],channel,v=>{channel=v;el('tagSearch').value='';if(mode==='rank')rebuildRank();paintControls();renderTags();applyFilters()});
   if(mode==='rank'){
     controls('rankKinds',boards,mold,v=>{
@@ -980,9 +987,10 @@ function openInlineIntro(card,btn){
     const foot=document.createElement('div');
     foot.className='blurbFoot';
     const foldBtn=document.createElement('button');
-    foldBtn.type='button';foldBtn.className='blurbFold';foldBtn.textContent='收起简介 ⌃';
+    foldBtn.type='button';foldBtn.className='blurbFold';foldBtn.textContent='点击任意处收起 ⌃';
     foot.append(foldBtn);
     box.replaceChildren(parasWrap,foot);
+    box.title='点击任意处收起简介';
     box.dataset.built='1';
   }
   card.classList.add('introOpen');
@@ -1038,8 +1046,14 @@ listing.addEventListener('click',e=>{
   const card=e.target.closest('article.book');if(!card)return;
   const blurbBtn=e.target.closest('.blurb');
   if(blurbBtn){openInlineIntro(card,blurbBtn);return;}
-  const foldBtn=e.target.closest('.blurbFold');
-  if(foldBtn){closeInlineIntro(card);card.querySelector('.blurb')?.focus();return;}
+  const blurbFull=e.target.closest('.blurbFull');
+  if(blurbFull){
+    const sel=window.getSelection?.()?.toString().trim();
+    if(sel&&!e.target.closest('.blurbFold'))return;
+    closeInlineIntro(card);
+    card.querySelector('.blurb')?.focus({preventScroll:true});
+    return;
+  }
   const rangeBtn=e.target.closest('.tmCell[data-range]');
   if(rangeBtn){
     const box=card.querySelector('.trendBox');
@@ -1353,10 +1367,12 @@ function coverageSummary(){
   return lines.join('');
 }
 function toggleCats(open){
-  el('catpanel').hidden=!open;
-  el('catRow').classList.toggle('catCollapsed',!open);
-  el('moreCats').setAttribute('aria-expanded',String(open));
-  const act=el('catAct');if(act)act.textContent=open?'收起':'展开';
+  const canOpen=Boolean(open)&&el('allCats').children.length>0;
+  el('catpanel').hidden=!canOpen;
+  el('catRow').classList.toggle('catCollapsed',!canOpen);
+  el('moreCats').setAttribute('aria-expanded',String(canOpen));
+  const totalCats=Math.max(0,el('category').children.length-1)+el('allCats').children.length;
+  el('moreCats').textContent=canOpen?'收起 ▴':'展开全部'+(totalCats?' ('+totalCats+')':'')+' ▾';
 }
 el('moreCats').onclick=()=>toggleCats(el('catpanel').hidden);
 el('closeCats').onclick=()=>{toggleCats(false);el('moreCats').focus()};
