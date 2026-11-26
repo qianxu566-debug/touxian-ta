@@ -1,4 +1,4 @@
-import { compressed, dayString } from './reader.js?v=9';
+import { compressed, dayString } from './reader.js?v=10';
 
 const nf = new Intl.NumberFormat('zh-CN');
 
@@ -334,21 +334,44 @@ function buildSparkline(series, dates, rangeDays = 1) {
   );
 }
 
-function windowMetric(t, rangeDays) {
-  if (rangeDays === 1) return { d: t.d1, p: t.p1, note: '' };
-  if (rangeDays === 7 && Number.isFinite(t.d7)) return { d: t.d7, p: t.p7, note: '' };
-  if (rangeDays === 30 && Number.isFinite(t.d30)) return { d: t.d30, p: t.p30, note: '' };
+export function windowMetric(t, rangeDays, dates = null, { requireLatest = false } = {}) {
+  if (!t) return { d: null, p: null, spanDays: 0, note: '' };
+  if (rangeDays === 1) return { d: t.d1, p: t.p1, spanDays: 1, note: '' };
+  if (rangeDays === 7 && Number.isFinite(t.d7)) return { d: t.d7, p: t.p7, spanDays: 7, note: '' };
+  if (rangeDays === 30 && Number.isFinite(t.d30)) return { d: t.d30, p: t.p30, spanDays: 30, note: '' };
   const s = t.series || [];
-  if (s.length < 2) return { d: null, p: null, note: '' };
-  const maxIdx = s[s.length - 1][0];
-  const sub = rangeDays === 7 ? s.filter((p) => p[0] >= maxIdx - 6) : s.slice(-30);
-  if (sub.length < 2) return { d: null, p: null, note: '' };
+  if (s.length < 2) return { d: null, p: null, spanDays: 0, note: '' };
+  const lastPt = s[s.length - 1];
+  const hasDates = Array.isArray(dates) && dates.length > 0;
+  if (requireLatest && hasDates && lastPt[0] !== dates.length - 1) {
+    return { d: null, p: null, spanDays: 0, note: '' };
+  }
+  let sub;
+  if (hasDates && dates[lastPt[0]]) {
+    const cutoff = shiftDate(dates[lastPt[0]], -rangeDays);
+    sub = s.filter((p) => dates[p[0]] && dates[p[0]] >= cutoff);
+  } else {
+    sub = s.filter((p) => p[0] >= lastPt[0] - rangeDays);
+  }
+  if (sub.length < 2) return { d: null, p: null, spanDays: 0, note: '' };
   const base = sub[0][1];
   const cur = sub[sub.length - 1][1];
   const delta = cur - base;
   const pctVal = base > 0 ? (100 * delta) / base : null;
-  const spanDays = Math.max(1, sub[sub.length - 1][0] - sub[0][0]);
-  return { d: delta, p: pctVal, note: `（近${spanDays}天）` };
+  let spanDays;
+  if (hasDates && dates[sub[0][0]] && dates[sub[sub.length - 1][0]]) {
+    spanDays = Math.max(
+      1,
+      Math.round(
+        (Date.parse(`${dates[sub[sub.length - 1][0]]}T00:00:00Z`) -
+          Date.parse(`${dates[sub[0][0]]}T00:00:00Z`)) /
+          86400000
+      )
+    );
+  } else {
+    spanDays = Math.max(1, sub[sub.length - 1][0] - sub[0][0]);
+  }
+  return { d: delta, p: pctVal, spanDays, note: spanDays < rangeDays ? `（近${spanDays}天）` : '' };
 }
 
 export function renderTrendPanel(trends, id, rangeDays = 1) {
@@ -358,9 +381,9 @@ export function renderTrendPanel(trends, id, rangeDays = 1) {
   }
   const activeRange = [1, 7, 30].includes(Number(rangeDays)) ? Number(rangeDays) : 1;
   const cols = [
-    { range: 1, label: dayLabel(trends.latestDate), ...windowMetric(t, 1) },
-    { range: 7, label: '近 7 天', ...windowMetric(t, 7) },
-    { range: 30, label: '近 30 天', ...windowMetric(t, 30) },
+    { range: 1, label: dayLabel(trends.latestDate), ...windowMetric(t, 1, trends.dates) },
+    { range: 7, label: '近 7 天', ...windowMetric(t, 7, trends.dates) },
+    { range: 30, label: '近 30 天', ...windowMetric(t, 30, trends.dates) },
   ];
   const cells = cols
     .map((c) => {

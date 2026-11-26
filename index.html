@@ -9,15 +9,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=9">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=9">
+<link rel="icon" href="./assets/otter.svg?v=10">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=10">
 <style>[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="./assets/site.css?v=9">
+<link rel="stylesheet" href="./assets/site.css?v=10">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=9" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=10" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
   </div>
@@ -225,8 +225,8 @@
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel} from './assets/daily.js?v=9';
-import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat} from './assets/reader.js?v=9';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=10';
+import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat} from './assets/reader.js?v=10';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -653,7 +653,7 @@ function queryBooks(f){
     if(f.order==='long')return b.words??-Infinity;
     if(f.order==='short')return -(b.words??Infinity);
     if(f.order==='gain1'){const t=b._t||getTrend(trends,b.id);return Number.isFinite(t?.d1)?t.d1:-Infinity;}
-    if(f.order==='gain7'||f.order==='gain'){const t=b._t||getTrend(trends,b.id);return Number.isFinite(t?.d7)?t.d7:-Infinity;}
+    if(f.order==='gain7'||f.order==='gain'){const t=b._t||getTrend(trends,b.id);const m=windowMetric(t,7,trends.dates,{requireLatest:true});return Number.isFinite(m.d)?m.d:-Infinity;}
     if(f.order==='words1'){const t=b._t||getTrend(trends,b.id);return Number.isFinite(t?.dw1)?t.dw1:-Infinity;}
     if(f.order==='sweepGain')return Number.isFinite(b._sweep?.gain)?b._sweep.gain:-Infinity;
     if(f.order==='bestPos')return Number.isFinite(b._sweep?.bestPos)?-b._sweep.bestPos:-Infinity;
@@ -758,12 +758,23 @@ function bookCard(b,index){
   const pos=b.positions?.[category]??(b.positions?Math.min(...Object.values(b.positions)):null);
   const t=b._t||getTrend(trends,b.id);
   const readersVal=mode==='rank'&&Number.isFinite(b.readers)?b.readers:(Number.isFinite(t?.readers)?t.readers:b.readers);
-  const dCls=t&&Number.isFinite(t.d1)?deltaClass(t.d1):'';
-  const arrow=dCls==='up'?'▲ ':dCls==='down'?'▼ ':'';
-  const dStr=t&&Number.isFinite(t.d1)?shortDelta(t.d1).replace(/^[+-]/,''):'';
-  const deltaHtml=(t&&Number.isFinite(t.d1))
-    ?'<span class="deltaPill '+dCls+'" title="'+esc(dayLabel(trends.latestDate))+'">'+arrow+esc(dStr)+(Number.isFinite(t.p1)?' · '+esc(formatPct(t.p1)):'')+'</span>'
-    :'';
+  const sortOrder=el('sort').value;
+  let deltaHtml='';
+  if(sortOrder==='gain7'||sortOrder==='gain'){
+    const m7=windowMetric(t,7,trends.dates,{requireLatest:true});
+    if(Number.isFinite(m7.d)){
+      const dCls=deltaClass(m7.d);
+      const arrow=dCls==='up'?'▲ ':dCls==='down'?'▼ ':'';
+      const dStr=shortDelta(m7.d).replace(/^[+-]/,'');
+      const winPrefix='近'+m7.spanDays+'天 ';
+      deltaHtml='<span class="deltaPill '+dCls+'" title="'+esc('近 '+m7.spanDays+' 天在读人数净变化')+'">'+esc(winPrefix)+arrow+esc(dStr)+(Number.isFinite(m7.p)?' · '+esc(formatPct(m7.p)):'')+'</span>';
+    }
+  }else if(t&&Number.isFinite(t.d1)){
+    const dCls=deltaClass(t.d1);
+    const arrow=dCls==='up'?'▲ ':dCls==='down'?'▼ ':'';
+    const dStr=shortDelta(t.d1).replace(/^[+-]/,'');
+    deltaHtml='<span class="deltaPill '+dCls+'" title="'+esc(dayLabel(trends.latestDate))+'">'+arrow+esc(dStr)+(Number.isFinite(t.p1)?' · '+esc(formatPct(t.p1)):'')+'</span>';
+  }
   const wordLabel=formatWordStatus(b,t,Math.floor(Date.now()/1000));
   const rowNum=index+1+(page-1)*PAGE_SIZE;
   const denseIdx='<span class="denseIdx'+(mode==='rank'&&pos&&pos<=3?' top3':'')+'">'+(mode==='rank'&&pos?pos:rowNum)+'</span>';
@@ -794,16 +805,19 @@ function bookCard(b,index){
   const tiqian='<span class="tiqian" data-tone="'+tone+'" aria-hidden="true"><em class="tqCat">'+esc(main[0]||'精选')+'</em><b class="tqTitle">'+esc(tqTitle)+'</b></span>';
   const coverImg=uri?'<img class="coverImg" loading="'+(index<4?'eager':'lazy')+'" decoding="async" referrerpolicy="no-referrer" src="'+esc(uri)+'" alt="'+esc(b.title)+'封面">':'';
   const denseWords='<span class="denseWords">'+(Number.isFinite(b.words)?esc(format(b.words)):'—')+'</span>';
-  const specLine=[Number.isFinite(b.words)?format(b.words)+'字':'',b.status,days===null?'':'开书 '+ageLabel(record.start,at,days)].filter(Boolean).map(esc).join(' · ');
+  const fmtWordsCompact=n=>n>=10000?wanNumber.format(n/10000)+'万字':number.format(n)+'字';
+  const specItems=[Number.isFinite(b.words)?fmtWordsCompact(b.words):'',b.status,days===null?'':'开书'+ageLabel(record.start,at,days).replace(/\s+/g,'')].filter(Boolean).map(esc).join(' · ');
   const scoreVal=Number.isFinite(b.score)&&b.score>0?b.score:null;
   const sCls=scoreVal===null?'':scoreVal>=9.5?'high':scoreVal>=9.0?'good':'mid';
   const cntStr=formatScoreCnt(b.scoreCount);
   const sTip=scoreVal===null?'':scoreVal.toFixed(1)+' 分'+(b.scoreCount?' · '+format(b.scoreCount)+'人点评':'');
-  const scoreHtml=scoreVal!==null?'<span class="scoreBadge '+sCls+'" title="'+esc(sTip)+'">★ '+scoreVal.toFixed(1)+(cntStr?'<em class="scoreCnt">· '+esc(cntStr)+'</em>':'')+'</span>':'';
+  const scoreSpecHtml=scoreVal!==null?'<span class="scoreBadge '+sCls+'" title="'+esc(sTip)+'"><b class="scoreNum">★ '+scoreVal.toFixed(1)+'</b>'+(cntStr?'<em class="scoreCnt">'+esc(cntStr)+'</em>':'')+'</span>':'';
+  const denseScoreHtml=scoreVal!==null?'<span class="denseScore '+sCls+'" title="'+esc(sTip)+'">· ★ '+scoreVal.toFixed(1)+(cntStr?'<em class="scoreCnt"> '+esc(cntStr)+'</em>':'')+'</span>':'';
+  const specRowHtml=(scoreSpecHtml||specItems)?'<div class="spec">'+scoreSpecHtml+(scoreSpecHtml&&specItems?'<span class="specSep" aria-hidden="true"></span>':'')+(specItems?'<span class="specMeta">'+specItems+'</span>':'')+'</div>':'';
   return '<article class="book" data-id="'+esc(b.id)+'">'+denseIdx
     +'<div class="lead"><div class="leadMain"><h3>'+title+'</h3>'
-    +'<div class="bookmeta">'+scoreHtml+(primaryLinks||'分类待核')+'<span>· '+esc(b.author)+'</span></div>'
-    +'<div class="spec">'+specLine+'</div>'
+    +'<div class="bookmeta">'+(primaryLinks||'分类待核')+'<span>· '+esc(b.author)+'</span>'+denseScoreHtml+'</div>'
+    +specRowHtml
     +cardTags(b)+'</div>'
     +'<a class="cover" href="'+bookLink+'" target="_blank" rel="noopener">'+tiqian+coverImg+'</a></div>'
     +historyRow
@@ -973,7 +987,8 @@ function renderPage(opts={}){
     :filters().bad
     ?'区间输入有误：请输入非负数字，且下限不大于上限。'
     :(source?'没有符合条件的作品，可移除部分筛选条件。':'未能打开本地书库。');
-  const headHtml=slice.length?'<div class="denseHead" aria-hidden="true"><span>#</span><span>书名 / 分类 · 作者</span><span class="dhNum">字数</span><span class="dhNum">在读</span><span class="dhNum">较昨日</span><span class="dhNum">日更</span><span class="dhNum">走势</span></div>':'';
+  const deltaCol=(el('sort').value==='gain7'||el('sort').value==='gain')?'近7天':'较昨日';
+  const headHtml=slice.length?'<div class="denseHead" aria-hidden="true"><span>#</span><span>书名 / 分类 · 作者</span><span class="dhNum">字数</span><span class="dhNum">在读</span><span class="dhNum">'+deltaCol+'</span><span class="dhNum">日更</span><span class="dhNum">走势</span></div>':'';
   listing.innerHTML=slice.length?(headHtml+slice.map(bookCard).join('')):'<div class="empty">'+emptyMsg+'</div>';
 }
 function resetFilters(defaultHeat){
@@ -1008,7 +1023,7 @@ function changeMode(next){
   let sorts=[];
   if(mode==='search'){
     if(hotOrder.size)sorts.push(['hot','书库热度']);
-    sorts.push(['reads','在读人数 ↓'],['score','小说评分 ↓'],['gain1','较昨日上涨 ↓'],['gain7','近 7 天涨幅 ↓'],['words1','近期日更 ↓'],['long','字数 ↓'],['short','字数 ↑']);
+    sorts.push(['reads','在读人数 ↓'],['score','小说评分 ↓'],['gain1','较昨日上涨 ↓'],['gain7','近 7 天上涨 ↓'],['words1','近期日更 ↓'],['long','字数 ↓'],['short','字数 ↑']);
   }else if(mode==='rank'){
     sorts.push(['reads','在读人数 ↓'],['pos','分类榜名次'],['score','小说评分 ↓'],['gain1','较昨日上涨 ↓']);
   }else if(mode==='sweep'){

@@ -990,30 +990,62 @@ body.sideCollapsed .expandSideBtn { display: inline-flex; align-items: center; }
   text-decoration: none;
 }
 .bookmeta .primary:hover { text-decoration: underline; text-underline-offset: 3px; }
+.spec {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 7px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
 .scoreBadge {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 4px;
   flex: none;
-  padding: 1px 6px;
-  border-radius: 5px;
-  font-size: 11px;
-  line-height: 1.35;
-  font-weight: 700;
   white-space: nowrap;
 }
+.scoreBadge .scoreNum {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.scoreBadge.high .scoreNum { color: var(--amber); }
+.scoreBadge.good .scoreNum { color: var(--accent); }
+.scoreBadge.mid .scoreNum { color: var(--ink-2); }
 .scoreBadge .scoreCnt {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.specSep {
+  display: inline-block;
+  width: 1px;
+  height: 10px;
+  background: var(--line-3);
+  flex: none;
+}
+.specMeta {
+  color: var(--ink-3);
+}
+.denseScore { display: none; }
+.list.dense .denseScore {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.list.dense .denseScore.high { color: var(--amber); }
+.list.dense .denseScore.good { color: var(--accent); }
+.list.dense .denseScore.mid { color: var(--ink-2); }
+.list.dense .denseScore .scoreCnt {
   font-style: normal;
   font-size: 10.5px;
   font-weight: 500;
-  opacity: 0.85;
-}
-.scoreBadge.high { background: var(--amber-tint); color: var(--amber); }
-.scoreBadge.good { background: var(--accent-tint); color: var(--accent); }
-.scoreBadge.mid { background: var(--pill); color: var(--ink-2); font-weight: 600; }
-.spec {
-  margin-top: 3px;
-  font-size: 12px;
   color: var(--ink-3);
 }
 
@@ -1807,6 +1839,8 @@ footer a { color: var(--ink-3); }
   .lead { grid-template-columns: minmax(0, 1fr) 68px; gap: 10px; }
   .cover { width: 68px; }
   .book h3 { font-size: 15.5px; }
+  .spec { font-size: 11.5px; gap: 2px 6px; }
+  .scoreBadge .scoreNum { font-size: 12px; }
   .aud b { font-size: 16.5px; }
   .book .aud { gap: 4px 6px; }
   .deltaPill { padding: 1px 5px; font-size: 10.5px; }
