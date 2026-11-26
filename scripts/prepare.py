@@ -36,6 +36,8 @@ out.mkdir(parents=True, exist_ok=True)
 cwd = Path.cwd().resolve()
 if out.resolve() != cwd:
     shutil.copyfile('index.html', out / 'index.html')
+    if Path('manifest.json').exists():
+        shutil.copyfile('manifest.json', out / 'manifest.json')
     shutil.copytree('assets', out / 'assets', dirs_exist_ok=True)
     for rel in ['data/book-dates.json.gz', 'data/hot.json']:
         if Path(rel).exists():

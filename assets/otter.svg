@@ -1,1 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true"><path fill="#faad78" d="M9 32C3 25 6 16 13 16q5 0 8 5c7-4 15-5 24-2q5-6 10-2c5 4 4 9 1 13q7 19-15 24c-17 4-32-1-35-11q-1-6 3-11z"/><path fill="#ffdcb1" d="M14 37q1-6 9-6 6-4 11 1 7-2 11 3 6 6 0 12-10 10-25 3-8-4-6-13z"/><g fill="#2c2630"><circle cx="19" cy="29" r="2.3"/><circle cx="38" cy="27" r="2.3"/><path d="M24 35q4-3 9-1-1 5-4 6-5-2-5-5z"/></g><path d="M29 39q-2 4-6 3m6-3q3 3 6 1" fill="none" stroke="#744b41" stroke-linecap="round" stroke-width="1.8"/><path d="M41 17q2-8 14-9-2 10-14 9z" fill="#99dfb9"/></svg>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g2bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#19333a"/>
+      <stop offset="100%" stop-color="#0e1b21"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#g2bg)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" fill="none" stroke="rgba(114,216,196,.28)" stroke-width="1.5"/>
+  <circle cx="18" cy="21" r="5" fill="#c9854f"/>
+  <circle cx="46" cy="21" r="5" fill="#c9854f"/>
+  <ellipse cx="32" cy="28" rx="17" ry="13.5" fill="#ebb782"/>
+  <ellipse cx="32" cy="32" rx="11.5" ry="7.2" fill="#faead2"/>
+  <circle cx="25" cy="25.5" r="2.2" fill="#16232b"/>
+  <circle cx="39" cy="25.5" r="2.2" fill="#16232b"/>
+  <ellipse cx="32" cy="29.5" rx="3.4" ry="2.2" fill="#2c2123"/>
+  <g stroke="#9b6a48" stroke-width="1.2" stroke-linecap="round" opacity=".65">
+    <path d="M19 30l-4.5-.6M19 32.8l-4.5.8M45 30l4.5-.6M45 32.8l4.5.8"/>
+  </g>
+  <path d="M12 40c7-2.5 14-1.5 20 2.2 6-3.7 13-4.7 20-2.2v14.5c-7-2.5-14-1.5-20 2-6-3.5-13-4.5-20-2V40z" fill="#42bfa8"/>
+  <path d="M14 41.5c6-2 12-1 18 2.2v10.8c-6-3-12-3.8-18-1.8V41.5z" fill="#72d8c4"/>
+  <path d="M50 41.5c-6-2-12-1-18 2.2v10.8c6-3 12-3.8 18-1.8V41.5z" fill="#5cccb7"/>
+  <ellipse cx="19" cy="40" rx="4.2" ry="3" fill="#d99762"/>
+  <ellipse cx="45" cy="40" rx="4.2" ry="3" fill="#d99762"/>
+</svg>
