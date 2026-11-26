@@ -9,15 +9,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=15">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=15">
+<link rel="icon" href="./assets/otter.svg?v=16">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=16">
 <style>[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="./assets/site.css?v=15">
+<link rel="stylesheet" href="./assets/site.css?v=16">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=15" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=16" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
     <button type="button" id="appDlBtn" class="appDlBtn" hidden aria-haspopup="dialog" aria-controls="appModal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg><span id="appDlLbl">下载 App</span></button>
@@ -225,7 +225,7 @@
     <div class="wxCard appCard">
       <div id="appModalWxTip" class="wxTipTop" hidden><span>微信内会拦截安装包下载</span><span class="wxArrow">请点右上角 ··· ↗</span></div>
       <div class="appHead">
-        <img src="./assets/otter.svg?v=15" alt="" width="40" height="40">
+        <img src="./assets/otter.svg?v=16" alt="" width="40" height="40">
         <div>
           <h3 id="appModalTitle">偷闲獭 App</h3>
           <div class="appSub"><span class="appVerPill" id="appModalMeta">Android v2.0.1 · 仅 65 KB</span></div>
@@ -249,8 +249,8 @@
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=15';
-import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=15';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=16';
+import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=16';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -1381,8 +1381,9 @@ for(const b of document.querySelectorAll('[data-sheet]'))b.onclick=()=>{
   document.body.classList.add('sheetOpen');
   document.body.classList.remove('mobileTagView');
   if(!el('tagpanel').hidden){el('tagpanel').hidden=true;el('more').setAttribute('aria-expanded','false');}
-  if(b.dataset.sheet==='category')toggleCats(true);
-  else toggleCats(false);
+  toggleCats(false);
+  const fm=document.querySelector('.filtersMain');
+  if(fm)fm.scrollTop=0;
   const focusTarget=el(b.dataset.sheet)?.querySelector('button');
   focusTarget?.focus({preventScroll:true});
 };
