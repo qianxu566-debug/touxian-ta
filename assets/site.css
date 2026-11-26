@@ -475,7 +475,7 @@ body.sideCollapsed .filters { display: none; }
   white-space: nowrap;
 }
 .secToggle:hover { text-decoration: underline; text-underline-offset: 3px; }
-.grpHeadBtn {
+.grpHeadBtn, .catHeadBtn {
   width: 100%;
   border: 0;
   background: transparent;
@@ -488,7 +488,7 @@ body.sideCollapsed .filters { display: none; }
   text-align: left;
   color: inherit;
 }
-.grpHeadBtn .grpMeta {
+.grpHeadBtn .grpMeta, .catHeadBtn .catMeta {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -496,15 +496,15 @@ body.sideCollapsed .filters { display: none; }
   color: var(--ink-4);
   margin-left: auto;
 }
-.grpHeadBtn .grpMeta.on { color: var(--accent); font-weight: 600; }
-.grpHeadBtn .grpChevron {
+.grpHeadBtn .grpMeta.on, .catHeadBtn .catMeta.on { color: var(--accent); font-weight: 600; }
+.grpHeadBtn .grpChevron, .catHeadBtn .catChevron {
   font-size: 11px;
   color: var(--ink-4);
   transition: transform 140ms var(--ease);
 }
-.filterrow.grpCollapsed .filterHead { margin-bottom: 0; }
+.filterrow.grpCollapsed .filterHead, .filterrow.catCollapsed .filterHead { margin-bottom: 0; }
 .filterrow.grpCollapsed .grpBody { display: none; }
-.filterrow.grpCollapsed .grpChevron { transform: rotate(-90deg); }
+.filterrow.grpCollapsed .grpChevron, .filterrow.catCollapsed .catChevron { transform: rotate(-90deg); }
 
 .opts {
   display: flex;
@@ -540,7 +540,7 @@ body.sideCollapsed .filters { display: none; }
 }
 .opts button[aria-pressed="true"] small { color: rgba(114, 216, 196, 0.78); }
 
-#catpanel { margin-top: 6px; }
+#catpanel { margin-top: 7px; }
 .panelend { display: none; }
 
 .custom {
@@ -563,7 +563,7 @@ body.sideCollapsed .filters { display: none; }
   color: var(--ink-1);
   font-size: 12.5px;
 }
-#ageScope {
+#ageScope, #scoreScope {
   display: block;
   margin-top: 6px;
   font-size: 11px;
@@ -990,6 +990,20 @@ body.sideCollapsed .expandSideBtn { display: inline-flex; align-items: center; }
   text-decoration: none;
 }
 .bookmeta .primary:hover { text-decoration: underline; text-underline-offset: 3px; }
+.scoreBadge {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.scoreBadge.high { background: var(--amber-tint); color: var(--amber); }
+.scoreBadge.good { background: var(--accent-tint); color: var(--accent); }
+.scoreBadge.mid { background: var(--pill); color: var(--ink-2); font-weight: 600; }
 .spec {
   margin-top: 3px;
   font-size: 12px;

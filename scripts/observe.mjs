@@ -21,6 +21,7 @@ import {
   fetchJson,
   runPool,
 } from './lib.mjs';
+import { backfillScores } from './backfill-scores.mjs';
 
 const catalogPath = process.argv[2] || 'catalog.gz';
 const coversOnly = process.argv.includes('--covers-only');
@@ -217,3 +218,10 @@ console.log(
     elapsedSec: Math.round((nowEnd - startTime) / 1000),
   })
 );
+
+if (!coversOnly && !missingUpdate) {
+  const remMs = maxMs - (Date.now() - startTime) - 180_000;
+  if (remMs > 60_000) {
+    await backfillScores({ catalogPath, limit: 4000, concurrency: 10, delayMs: 45, maxMs: remMs });
+  }
+}

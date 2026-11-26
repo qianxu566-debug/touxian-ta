@@ -81,6 +81,9 @@ function absorbBook(row) {
       next.channel = '共用';
     }
   }
+  if (Number.isFinite(row.score) && row.score > 0 && row.score <= 10) {
+    next.score = row.score;
+  }
   if (row.rankInfo) next.rankInfo = row.rankInfo;
   if (row.coverUrl) {
     const clean = sanitizeImageUrl(row.coverUrl);
@@ -294,6 +297,8 @@ async function fetchRanksAndBoards() {
         .filter((b) => typeof b.book_id === 'string' && /^\d+$/.test(b.book_id) && b.book_name)
         .map((b, i) => {
           const readers = /^\d+$/.test(String(b.read_count)) ? Number(b.read_count) : null;
+          const rawScore = Number(b.score);
+          const score = Number.isFinite(rawScore) && rawScore > 0 && rawScore <= 10 ? Math.round(rawScore * 10) / 10 : undefined;
           const coverUrl = sanitizeImageUrl(b.thumb_url);
           const primary = side ? [] : [b.category].filter(Boolean);
           const tags = side ? (Array.isArray(b.category_v2) ? b.category_v2 : []) : [];
@@ -304,6 +309,7 @@ async function fetchRanksAndBoards() {
               author: b.author,
               intro: b.abstract,
               readers,
+              score,
               coverUrl,
               primary,
               tags,
@@ -316,6 +322,7 @@ async function fetchRanksAndBoards() {
             author: b.author,
             pos: i + 1,
             readers,
+            ...(score !== undefined ? { score } : {}),
             coverUrl,
             intro: b.abstract,
             primary,

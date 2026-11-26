@@ -39,9 +39,8 @@ if out.resolve() != cwd:
     if Path('manifest.json').exists():
         shutil.copyfile('manifest.json', out / 'manifest.json')
     shutil.copytree('assets', out / 'assets', dirs_exist_ok=True)
-    for rel in ['data/book-dates.json.gz', 'data/hot.json']:
-        if Path(rel).exists():
-            shutil.copyfile(rel, out / rel)
+    if Path('data/hot.json').exists():
+        shutil.copyfile('data/hot.json', out / 'data/hot.json')
 
 # 0. Load catalog_map early so compact history snapshots can omit redundant strings
 def best_cover_url(book_obj, now_s):
@@ -75,6 +74,43 @@ if catalog_src.exists():
             valid_covers += 1
 
 catalog_ids = set(catalog_map.keys())
+
+book_dates = {}
+bd_path = Path('data/book-dates.json.gz')
+if bd_path.exists():
+    try:
+        with gzip.open(bd_path, 'rt', encoding='utf-8') as fh:
+            book_dates = json.load(fh)
+    except Exception:
+        book_dates = {}
+
+slim_book_dates = {
+    str(bid): {'start': v['start']}
+    for bid, v in book_dates.items()
+    if isinstance(v, dict) and v.get('start')
+}
+(out / 'data' / 'book-dates.json.gz').write_bytes(
+    gzip.compress(
+        json.dumps(slim_book_dates, ensure_ascii=False, separators=(',', ':')).encode('utf-8'),
+        compresslevel=6,
+        mtime=0,
+    )
+)
+
+
+def resolve_score(bid, b_obj=None):
+    bd_entry = book_dates.get(bid)
+    if isinstance(bd_entry, dict):
+        sv = bd_entry.get('score')
+        if isinstance(sv, (int, float)) and 0 < sv <= 10:
+            sc_cnt = bd_entry.get('sc')
+            return round(float(sv), 1), (int(sc_cnt) if isinstance(sc_cnt, int) and sc_cnt > 0 else 0)
+    if isinstance(b_obj, dict):
+        sv = b_obj.get('score')
+        if isinstance(sv, (int, float)) and 0 < sv <= 10:
+            sc_cnt = b_obj.get('scoreCount')
+            return round(float(sv), 1), (int(sc_cnt) if isinstance(sc_cnt, int) and sc_cnt > 0 else 0)
+    return None, 0
 
 # 1. Load ALL valid rank history files (no 90-day cutoff for lifetime badge tenure!)
 rank_files = sorted(Path('history').glob('????-??-??.json.gz'))
@@ -127,7 +163,8 @@ for day_str in kept_rank_dates:
                     'status': r.get('status') or '',
                 })
             else:
-                compact_rows.append({
+                sc_val, sc_cnt = resolve_score(bid, r)
+                c_row = {
                     'id': bid,
                     'pos': pos,
                     'readers': r.get('readers'),
@@ -137,7 +174,12 @@ for day_str in kept_rank_dates:
                     'author': r.get('author') or '',
                     'intro': r.get('intro') or '',
                     'coverUrl': r.get('coverUrl') or '',
-                })
+                }
+                if sc_val is not None:
+                    c_row['score'] = sc_val
+                    if sc_cnt > 0:
+                        c_row['scoreCount'] = sc_cnt
+                compact_rows.append(c_row)
         g_copy['rows'] = compact_rows
         compact_scopes.append(g_copy)
 
@@ -153,7 +195,13 @@ for day_str in kept_rank_dates:
                     'readers': r.get('readers'),
                 })
             else:
-                b_rows.append(r)
+                sc_val, sc_cnt = resolve_score(bid, r)
+                b_copy = dict(r)
+                if sc_val is not None:
+                    b_copy['score'] = sc_val
+                    if sc_cnt > 0:
+                        b_copy['scoreCount'] = sc_cnt
+                b_rows.append(b_copy)
         compact_boards[mk] = {'observed': bdata.get('observed'), 'rows': b_rows}
 
     trimmed = {'date': day_str, 'scopes': compact_scopes, 'boards': compact_boards}
@@ -309,6 +357,7 @@ trends_payload = {
         'wordsPaired1': words_paired1,
         'validCovers': valid_covers,
         'totalBooks': total_books,
+        'datedBooks': len(slim_book_dates),
     },
     'books': trends_books,
 }
@@ -322,14 +371,6 @@ trends_payload = {
 )
 
 # 3. Compile data/radar.json.gz for 「扫榜」, 「首秀」, and lifetime rank badges
-book_dates = {}
-bd_path = Path('data/book-dates.json.gz')
-if bd_path.exists():
-    try:
-        with gzip.open(bd_path, 'rt', encoding='utf-8') as fh:
-            book_dates = json.load(fh)
-    except Exception:
-        book_dates = {}
 
 top30_base_date = all_rank_dates[0] if all_rank_dates else '9999-99-99'
 top100_base_date = '9999-99-99'
@@ -777,6 +818,12 @@ extra_books = {}
 for bid in (set(sweep_books.keys()) | set(debut_books.keys()) | set(badges.keys())) - catalog_ids:
     m = rank_meta.get(bid)
     if m and m.get('title'):
+        sc_val, sc_cnt = resolve_score(bid, m)
+        if sc_val is not None:
+            m = dict(m)
+            m['score'] = sc_val
+            if sc_cnt > 0:
+                m['scoreCount'] = sc_cnt
         extra_books[bid] = m
 
 radar_payload = {
@@ -832,6 +879,11 @@ for b in cat.get('books', []):
         item['events'] = b['events']
     if b.get('channel') == '共用' and (b.get('channelEvidence') or {}).get('kind') == 'official-detail':
         item['sharedOfficial'] = 1
+    sc_val, sc_cnt = resolve_score(bid, b)
+    if sc_val is not None:
+        item['score'] = sc_val
+        if sc_cnt > 0:
+            item['scoreCount'] = sc_cnt
     slim_books.append(item)
 
 slim_cat_bytes = 0
@@ -943,6 +995,15 @@ for ch_key, ch_val in (('all', ''), ('男频', '男频'), ('女频', '女频')):
 
 ge10k_count = sum(1 for b in ge8k_books if (eff_readers(b) or 0) >= 10000)
 intro_total_count = sum(1 for b in ge8k_books if b.get('intro'))
+scored_count = sum(1 for b in ge8k_books if isinstance(b.get('score'), (int, float)) and b['score'] > 0)
+trends_payload['stats']['scoredBooks'] = scored_count
+(out / 'data' / 'trends.json.gz').write_bytes(
+    gzip.compress(
+        json.dumps(trends_payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8'),
+        compresslevel=6,
+        mtime=0,
+    )
+)
 boot_payload = {
     'updated': cat.get('updated'),
     'coverage': cat.get('coverage'),
@@ -962,7 +1023,8 @@ boot_payload = {
         'rankDays': len(win_dates),
         'sweepCount': len(sweep_books),
         'debutCount': len(debut_books),
-        'datedBooks': len(book_dates),
+        'datedBooks': len(slim_book_dates),
+        'scoredBooks': scored_count,
     },
     'catCounts': cat_counts,
     'tagCounts': tag_counts,
