@@ -993,6 +993,7 @@ body.sideCollapsed .expandSideBtn { display: inline-flex; align-items: center; }
 .scoreBadge {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   flex: none;
   padding: 1px 6px;
   border-radius: 5px;
@@ -1000,6 +1001,12 @@ body.sideCollapsed .expandSideBtn { display: inline-flex; align-items: center; }
   line-height: 1.35;
   font-weight: 700;
   white-space: nowrap;
+}
+.scoreBadge .scoreCnt {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 500;
+  opacity: 0.85;
 }
 .scoreBadge.high { background: var(--amber-tint); color: var(--amber); }
 .scoreBadge.good { background: var(--accent-tint); color: var(--accent); }
@@ -1816,6 +1823,7 @@ footer a { color: var(--ink-3); }
   .list.dense .audMain { grid-column: 3; grid-row: 1; align-self: center; }
   .list.dense .audMain b { font-size: 14px; }
   .list.dense .bookmeta { grid-column: 2; grid-row: 2; }
+  .list.dense .scoreCnt { display: none; }
   .list.dense .deltaPill { display: none; }
   .list.dense .denseWords { display: none; }
   .list.dense .wordDiff { display: none; }

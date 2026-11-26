@@ -9,15 +9,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=8">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=8">
+<link rel="icon" href="./assets/otter.svg?v=9">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=9">
 <style>[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="./assets/site.css?v=8">
+<link rel="stylesheet" href="./assets/site.css?v=9">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=8" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=9" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
   </div>
@@ -225,8 +225,8 @@
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel} from './assets/daily.js?v=8';
-import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat} from './assets/reader.js?v=8';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel} from './assets/daily.js?v=9';
+import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat} from './assets/reader.js?v=9';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -247,6 +247,7 @@ const norm=v=>String(v||'').normalize('NFKC').toLowerCase().replace(/[\s\p{P}]/g
 const number=new Intl.NumberFormat('zh-CN');
 const wanNumber=new Intl.NumberFormat('zh-CN',{maximumFractionDigits:1});
 const format=n=>!Number.isFinite(n)?'暂无':n>=10000?wanNumber.format(n/10000)+' 万':number.format(n);
+const formatScoreCnt=n=>!Number.isFinite(n)||n<=0?'':(n>=10000?wanNumber.format(n/10000)+'万':number.format(n))+'评';
 function setMetaUpdated(ts){
   if(!ts)return;
   const dStr=new Date(ts).toLocaleDateString('zh-CN',{timeZone:'Asia/Shanghai',month:'2-digit',day:'2-digit'});
@@ -796,8 +797,9 @@ function bookCard(b,index){
   const specLine=[Number.isFinite(b.words)?format(b.words)+'字':'',b.status,days===null?'':'开书 '+ageLabel(record.start,at,days)].filter(Boolean).map(esc).join(' · ');
   const scoreVal=Number.isFinite(b.score)&&b.score>0?b.score:null;
   const sCls=scoreVal===null?'':scoreVal>=9.5?'high':scoreVal>=9.0?'good':'mid';
+  const cntStr=formatScoreCnt(b.scoreCount);
   const sTip=scoreVal===null?'':scoreVal.toFixed(1)+' 分'+(b.scoreCount?' · '+format(b.scoreCount)+'人点评':'');
-  const scoreHtml=scoreVal!==null?'<span class="scoreBadge '+sCls+'" title="'+esc(sTip)+'">★ '+scoreVal.toFixed(1)+'</span>':'';
+  const scoreHtml=scoreVal!==null?'<span class="scoreBadge '+sCls+'" title="'+esc(sTip)+'">★ '+scoreVal.toFixed(1)+(cntStr?'<em class="scoreCnt">· '+esc(cntStr)+'</em>':'')+'</span>':'';
   return '<article class="book" data-id="'+esc(b.id)+'">'+denseIdx
     +'<div class="lead"><div class="leadMain"><h3>'+title+'</h3>'
     +'<div class="bookmeta">'+scoreHtml+(primaryLinks||'分类待核')+'<span>· '+esc(b.author)+'</span></div>'
