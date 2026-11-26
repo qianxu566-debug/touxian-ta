@@ -1019,6 +1019,7 @@ boot_payload = {
         'observed': trends_payload['stats']['observed'],
         'paired1': paired1,
         'paired7': paired7,
+        'paired30': paired30,
         'wordsPaired1': words_paired1,
         'rankDays': len(win_dates),
         'sweepCount': len(sweep_books),

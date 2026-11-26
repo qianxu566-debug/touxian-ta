@@ -1048,6 +1048,11 @@ body.sideCollapsed .expandSideBtn { display: inline-flex; align-items: center; }
   font-weight: 500;
   color: var(--ink-3);
 }
+.list.sortByComments .scoreBadge .scoreCnt,
+.list.dense.sortByComments .denseScore .scoreCnt {
+  color: var(--accent);
+  font-weight: 600;
+}
 
 /* Tinted Tag Chips with subtle right fade mask */
 .cardTags {
@@ -1858,6 +1863,7 @@ footer a { color: var(--ink-3); }
   .list.dense .audMain b { font-size: 14px; }
   .list.dense .bookmeta { grid-column: 2; grid-row: 2; }
   .list.dense .scoreCnt { display: none; }
+  .list.dense.sortByComments .scoreCnt { display: inline; }
   .list.dense .deltaPill { display: none; }
   .list.dense .denseWords { display: none; }
   .list.dense .wordDiff { display: none; }
