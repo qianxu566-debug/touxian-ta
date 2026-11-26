@@ -1,4 +1,4 @@
-import { compressed, dayString } from './reader.js?v=12';
+import { compressed, dayString } from './reader.js?v=13';
 
 const nf = new Intl.NumberFormat('zh-CN');
 
@@ -335,16 +335,28 @@ function buildSparkline(series, dates, rangeDays = 1) {
 }
 
 export function windowMetric(t, rangeDays, dates = null, { requireLatest = false } = {}) {
-  if (!t) return { d: null, p: null, spanDays: 0, note: '' };
-  if (rangeDays === 1) return { d: t.d1, p: t.p1, spanDays: 1, note: '' };
-  if (rangeDays === 7 && Number.isFinite(t.d7)) return { d: t.d7, p: t.p7, spanDays: 7, note: '' };
-  if (rangeDays === 30 && Number.isFinite(t.d30)) return { d: t.d30, p: t.p30, spanDays: 30, note: '' };
+  if (!t) return { d: null, p: null, base: null, cur: null, spanDays: 0, note: '' };
+  if (rangeDays === 1) {
+    const cur = Number.isFinite(t.readers) ? t.readers : null;
+    const base = cur !== null && Number.isFinite(t.d1) ? cur - t.d1 : null;
+    return { d: t.d1, p: t.p1, base, cur, spanDays: 1, note: '' };
+  }
+  if (rangeDays === 7 && Number.isFinite(t.d7)) {
+    const cur = Number.isFinite(t.readers) ? t.readers : null;
+    const base = cur !== null ? cur - t.d7 : null;
+    return { d: t.d7, p: t.p7, base, cur, spanDays: 7, note: '' };
+  }
+  if (rangeDays === 30 && Number.isFinite(t.d30)) {
+    const cur = Number.isFinite(t.readers) ? t.readers : null;
+    const base = cur !== null ? cur - t.d30 : null;
+    return { d: t.d30, p: t.p30, base, cur, spanDays: 30, note: '' };
+  }
   const s = t.series || [];
-  if (s.length < 2) return { d: null, p: null, spanDays: 0, note: '' };
+  if (s.length < 2) return { d: null, p: null, base: null, cur: null, spanDays: 0, note: '' };
   const lastPt = s[s.length - 1];
   const hasDates = Array.isArray(dates) && dates.length > 0;
   if (requireLatest && hasDates && lastPt[0] !== dates.length - 1) {
-    return { d: null, p: null, spanDays: 0, note: '' };
+    return { d: null, p: null, base: null, cur: null, spanDays: 0, note: '' };
   }
   let sub;
   if (hasDates && dates[lastPt[0]]) {
@@ -353,7 +365,7 @@ export function windowMetric(t, rangeDays, dates = null, { requireLatest = false
   } else {
     sub = s.filter((p) => p[0] >= lastPt[0] - rangeDays);
   }
-  if (sub.length < 2) return { d: null, p: null, spanDays: 0, note: '' };
+  if (sub.length < 2) return { d: null, p: null, base: null, cur: null, spanDays: 0, note: '' };
   const base = sub[0][1];
   const cur = sub[sub.length - 1][1];
   const delta = cur - base;
@@ -371,7 +383,7 @@ export function windowMetric(t, rangeDays, dates = null, { requireLatest = false
   } else {
     spanDays = Math.max(1, sub[sub.length - 1][0] - sub[0][0]);
   }
-  return { d: delta, p: pctVal, spanDays, note: spanDays < rangeDays ? `（近${spanDays}天）` : '' };
+  return { d: delta, p: pctVal, base, cur, spanDays, note: spanDays < rangeDays ? `（近${spanDays}天）` : '' };
 }
 
 export function renderTrendPanel(trends, id, rangeDays = 1) {

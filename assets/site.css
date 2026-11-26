@@ -1084,6 +1084,29 @@ body.sideCollapsed .expandSideBtn { display: inline-flex; align-items: center; }
   color: var(--accent);
   font-weight: 600;
 }
+.list.sortByScore .scoreBadge {
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--amber-tint);
+}
+.list.sortByScore .scoreBadge.good { background: var(--accent-tint); }
+.list.sortByScore .scoreBadge.mid { background: var(--pill); }
+
+/* Rank Mode Declutter & Simple 100-Book Full-Width Layout */
+.rankMode #count,
+.rankMode .sortWrap,
+.rankMode .viewSeg { display: none; }
+.rankMode .results:not(.hasRankTool) { display: none; }
+body.rankSimple main { grid-template-columns: minmax(0, 1fr); }
+body.rankSimple main > :not(.filters) { grid-column: 1; }
+body.rankSimple .filters,
+body.rankSimple .expandSideBtn,
+body.rankSimple .quick,
+body.rankSimple .results,
+body.rankSimple .activeBar { display: none !important; }
+@media (min-width: 1440px) {
+  body.rankSimple .list:not(.dense) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 
 /* Tinted Tag Chips with subtle right fade mask */
 .cardTags {
@@ -1809,6 +1832,14 @@ footer a { color: var(--ink-3); }
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
+  }
+  #rankFields .modeGroup:not(:first-child) {
+    width: auto;
+    flex: 1 1 auto;
+    justify-content: flex-start;
+  }
+  #rankFields .modeGroup:not(:first-child) .segOpts {
+    flex: 0 1 auto;
   }
   .modeNote { margin-left: 0; font-size: 11.5px; }
 
