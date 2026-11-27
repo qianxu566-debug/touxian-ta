@@ -23,9 +23,9 @@
   --down-tint: rgba(235, 154, 146, 0.13);
   --warn: #dfb972;
   --warn-tint: rgba(223, 185, 114, 0.13);
-  --chart-line: #f59e0b;
-  --chart-glow: rgba(245, 158, 11, 0.28);
-  --chart-guide: rgba(245, 158, 11, 0.58);
+  --chart-line: #5fd4a8;
+  --chart-glow: rgba(95, 212, 168, 0.28);
+  --chart-guide: rgba(95, 212, 168, 0.56);
   --chart-dot-ring: #111c23;
   --pill: rgba(195, 222, 226, 0.08);
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -1560,7 +1560,7 @@ body.rankSimple .activeBar { display: none !important; }
   display: inline-block;
   padding: 1px 6px;
   border-radius: 5px;
-  background: var(--amber-tint);
+  background: var(--accent-tint);
   color: var(--chart-line);
   font-weight: 700;
   font-size: 11.5px;
@@ -1680,62 +1680,6 @@ body.rankSimple .activeBar { display: none !important; }
 }
 .tcXTick.edgeL { transform: translateX(0); }
 .tcXTick.edgeR { transform: translateX(-100%); }
-.tcFoot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line-1);
-  font-size: 11px;
-  color: var(--ink-3);
-}
-.tcDetailToggle {
-  border: 1px solid var(--line-2);
-  background: var(--bg-1);
-  color: var(--ink-2);
-  border-radius: 7px;
-  padding: 3px 9px;
-  font-size: 11.5px;
-  font-weight: 500;
-  transition: border-color 140ms var(--ease), color 140ms var(--ease);
-}
-.tcDetailToggle:hover {
-  border-color: var(--line-3);
-  color: var(--accent);
-}
-.tcDetail {
-  margin-top: 8px;
-  max-height: 216px;
-  overflow-y: auto;
-  border-radius: 8px;
-  border: 1px solid var(--line-1);
-  background: var(--bg-1);
-}
-.tcDetailRow {
-  width: 100%;
-  border: 0;
-  border-bottom: 1px solid var(--line-1);
-  background: transparent;
-  padding: 6px 10px;
-  display: grid;
-  grid-template-columns: 88px minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-  text-align: left;
-  font-size: 12px;
-  color: var(--ink-3);
-}
-.tcDetailRow:last-child { border-bottom: 0; }
-.tcDetailRow:hover { background: var(--bg-2); }
-.tcDetailRow.active { background: var(--amber-tint); }
-.tcDetailRow b { font-weight: 600; color: var(--ink-1); }
-.tcDetailRow em { font-style: normal; font-weight: 600; text-align: right; }
-.tcDetailRow em.up { color: var(--up); }
-.tcDetailRow em.down { color: var(--down); }
-.tcDetailRow em.flat { color: var(--ink-4); }
 .trendEmpty { color: var(--ink-3); font-size: 12px; }
 
 /* Dense View: Desktop 7-Column Data Table (56px rows) */
@@ -2571,9 +2515,9 @@ html[data-theme="light"] {
   --down-tint: rgba(201, 59, 51, 0.10);
   --warn: #a6620c;
   --warn-tint: rgba(166, 98, 12, 0.12);
-  --chart-line: #d97706;
-  --chart-glow: rgba(217, 119, 6, 0.24);
-  --chart-guide: rgba(217, 119, 6, 0.55);
+  --chart-line: #12906e;
+  --chart-glow: rgba(18, 144, 110, 0.24);
+  --chart-guide: rgba(18, 144, 110, 0.52);
   --chart-dot-ring: #f9fcfb;
   --pill: rgba(18, 56, 48, 0.068);
 }

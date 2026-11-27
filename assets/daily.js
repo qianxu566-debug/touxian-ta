@@ -1,4 +1,4 @@
-import { compressed, fetchCached, dayString } from './reader.js?v=20';
+import { compressed, fetchCached, dayString } from './reader.js?v=21';
 
 const nf = new Intl.NumberFormat('zh-CN');
 
@@ -419,14 +419,6 @@ function buildInteractiveChart(series, dates, rangeDays = 7, bookId = '') {
     })
     .join('');
 
-  const detailRowsHtml = [...pointObjs]
-    .reverse()
-    .map((p) => {
-      const shortDeltaTxt = p.hasPrev ? p.deltaText.replace(/^较前日\s*/, '') : '首次实测';
-      return `<button type="button" class="tcDetailRow${p.i === last.i ? ' active' : ''}" data-pt-idx="${p.i}"><span>${escAttr(p.dateFull)}</span><b>${p.valText}</b><em class="${p.deltaCls}">${shortDeltaTxt}</em></button>`;
-    })
-    .join('');
-
   const compactPts = pointObjs.map(({ i, date, valText, deltaText, deltaCls, xPct, yPct }) => ({
     i,
     date,
@@ -438,7 +430,6 @@ function buildInteractiveChart(series, dates, rangeDays = 7, bookId = '') {
   }));
 
   const winLabel = rangeDays === 1 ? '单日对比' : `近 ${rangeDays} 天 · 实测 ${pointObjs.length} 天`;
-  const rangeExt = `最低 ${fmtReadersDetail(minV)} · 最高 ${fmtReadersDetail(maxV)}`;
 
   return (
     `<div class="trendChart" data-pts="${escAttr(JSON.stringify(compactPts))}">` +
@@ -466,8 +457,6 @@ function buildInteractiveChart(series, dates, rangeDays = 7, bookId = '') {
     `</div>` +
     `</div>` +
     `<div class="tcXAxis" aria-hidden="true">${xAxisHtml}</div>` +
-    `<div class="tcFoot"><span class="tcRangeExt">${rangeExt}</span><button type="button" class="tcDetailToggle" aria-expanded="false">查看每日明细（${pointObjs.length}天） ▾</button></div>` +
-    `<div class="tcDetail" hidden>${detailRowsHtml}</div>` +
     `</div>`
   );
 }
@@ -571,9 +560,6 @@ export function bindTrendChart(container) {
   const activeDotEl = root.querySelector('.tcActiveDot');
   const dotEls = [...root.querySelectorAll('.tcDot[data-pt-idx]')];
   const extremeEls = [...root.querySelectorAll('.tcExtreme[data-pt-idx]')];
-  const detailToggle = root.querySelector('.tcDetailToggle');
-  const detailBox = root.querySelector('.tcDetail');
-  const detailRows = [...root.querySelectorAll('.tcDetailRow[data-pt-idx]')];
 
   let activeIdx = pts.length - 1;
   let pinned = false;
@@ -599,7 +585,6 @@ export function bindTrendChart(container) {
     }
     for (const d of dotEls) d.classList.toggle('active', Number(d.dataset.ptIdx) === safeIdx);
     for (const ex of extremeEls) ex.hidden = Number(ex.dataset.ptIdx) === safeIdx;
-    for (const row of detailRows) row.classList.toggle('active', Number(row.dataset.ptIdx) === safeIdx);
     if (canvas) {
       canvas.setAttribute('aria-valuenow', String(safeIdx));
       canvas.setAttribute('aria-valuetext', `${p.date} 在读 ${p.valText} ${p.deltaText}`);
@@ -667,22 +652,6 @@ export function bindTrendChart(container) {
         pinned = true;
         setActive(pts.length - 1);
       }
-    });
-  }
-
-  if (detailToggle && detailBox) {
-    detailToggle.addEventListener('click', () => {
-      const open = detailBox.hidden;
-      detailBox.hidden = !open;
-      detailToggle.setAttribute('aria-expanded', String(open));
-      detailToggle.textContent = open ? '收起每日明细 ▴' : `查看每日明细（${pts.length}天） ▾`;
-    });
-  }
-
-  for (const row of detailRows) {
-    row.addEventListener('click', () => {
-      pinned = true;
-      setActive(Number(row.dataset.ptIdx));
     });
   }
 }
