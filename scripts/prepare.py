@@ -15,6 +15,7 @@ Outputs in _site/:
   - history/index.json, history/YYYY-MM-DD.json.gz (full Top-100 compact snapshots for 「排行榜」)
 """
 import gzip
+import hashlib
 import json
 import shutil
 import sys
@@ -1027,6 +1028,44 @@ def eff_readers(book_item):
     return book_item.get('readers')
 
 
+INTRO_CHUNKS = 4
+ver_sig = f"{cat.get('updated') or ''}|{latest_date or ''}|{latest_rank_date or ''}|{len(slim_books)}|{valid_covers}|{len(trends_books)}|{len(sweep_books)}"
+data_ver = f"{(latest_date or latest_rank_date or '0')}_{hashlib.sha1(ver_sig.encode('utf-8')).hexdigest()[:8]}"
+
+ordered_slim = sorted(
+    slim_books,
+    key=lambda b: (hot_idx.get(b['id'], 10**9), -(eff_readers(b) or 0), b['id']),
+)
+core_books = [{k: v for k, v in b.items() if k != 'intro'} for b in ordered_slim]
+core_payload = {
+    'dataVer': data_ver,
+    'introChunks': INTRO_CHUNKS,
+    'updated': cat.get('updated'),
+    'coverage': cat.get('coverage'),
+    'refresh': cat.get('refresh'),
+    'books': core_books,
+}
+core_gz = gzip.compress(
+    json.dumps(core_payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8'),
+    compresslevel=6,
+    mtime=0,
+)
+(out / 'data' / 'catalog-core.json.gz').write_bytes(core_gz)
+
+intro_pairs = [(b['id'], b['intro']) for b in ordered_slim if b.get('intro')]
+chunk_size = max(1, (len(intro_pairs) + INTRO_CHUNKS - 1) // INTRO_CHUNKS)
+intro_bytes = []
+for chunk_i in range(INTRO_CHUNKS):
+    part = dict(intro_pairs[chunk_i * chunk_size : (chunk_i + 1) * chunk_size])
+    part_gz = gzip.compress(
+        json.dumps(part, ensure_ascii=False, separators=(',', ':')).encode('utf-8'),
+        compresslevel=6,
+        mtime=0,
+    )
+    (out / 'data' / f'intros-{chunk_i}.json.gz').write_bytes(part_gz)
+    intro_bytes.append(len(part_gz))
+
+
 ge8k_books = [
     b for b in slim_books
     if isinstance(eff_readers(b), (int, float)) and eff_readers(b) >= 8000
@@ -1118,6 +1157,8 @@ trends_payload['stats']['updatedBooks'] = updated_count
     )
 )
 boot_payload = {
+    'dataVer': data_ver,
+    'introChunks': INTRO_CHUNKS,
     'updated': cat.get('updated'),
     'coverage': cat.get('coverage'),
     'latestDate': latest_date,
@@ -1168,9 +1209,12 @@ print(
             'extraBooks': len(extra_books),
             'quarantinedCount': len(quarantined_ids),
             'stats': trends_payload['stats'],
+            'dataVer': data_ver,
             'trendsBytes': (out / 'data' / 'trends.json.gz').stat().st_size,
             'radarBytes': (out / 'data' / 'radar.json.gz').stat().st_size,
             'bootBytes': (out / 'data' / 'boot.json.gz').stat().st_size,
+            'coreBytes': len(core_gz),
+            'introBytes': intro_bytes,
             'slimCatalogBytes': slim_cat_bytes,
         },
         ensure_ascii=False,

@@ -1,19 +1,27 @@
-import { compressed, dayString } from './reader.js?v=18';
+import { compressed, fetchCached, dayString } from './reader.js?v=19';
 
 const nf = new Intl.NumberFormat('zh-CN');
 
-export function loadTrends() {
-  return compressed('./data/trends.json.gz').catch(() => ({
+export function loadTrends(opts = {}) {
+  const fallback = {
     latestDate: null,
     prevDate: null,
     dates: [],
     stats: {},
     books: {},
-  }));
+  };
+  const p = fetchCached('./data/trends.json.gz', {
+    gz: true,
+    timeoutMs: opts.timeoutMs ?? 15000,
+    retries: opts.retries ?? 2,
+    ver: opts.ver || '',
+    forceNetwork: Boolean(opts.forceNetwork),
+  }).then((r) => r.data);
+  return opts.strict ? p : p.catch(() => fallback);
 }
 
-export function loadRadar() {
-  return compressed('./data/radar.json.gz').catch(() => ({
+export function loadRadar(opts = {}) {
+  const fallback = {
     rankDates: [],
     latestRankDate: null,
     top30BaseDate: '',
@@ -22,8 +30,17 @@ export function loadRadar() {
     cats: [],
     sweep: {},
     debut: {},
+    badges: {},
     extraBooks: {},
-  }));
+  };
+  const p = fetchCached('./data/radar.json.gz', {
+    gz: true,
+    timeoutMs: opts.timeoutMs ?? 15000,
+    retries: opts.retries ?? 2,
+    ver: opts.ver || '',
+    forceNetwork: Boolean(opts.forceNetwork),
+  }).then((r) => r.data);
+  return opts.strict ? p : p.catch(() => fallback);
 }
 
 export function getTrend(trends, id) {

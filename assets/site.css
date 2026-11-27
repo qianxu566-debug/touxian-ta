@@ -870,6 +870,37 @@ body.sideCollapsed .filters { display: none; }
   margin-left: 8px;
   font-weight: 500;
 }
+.syncBadge.warn {
+  color: var(--warn);
+  background: var(--warn-tint);
+}
+.syncRetryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  transition: background-color 140ms var(--ease), color 140ms var(--ease);
+}
+.syncRetryBtn:hover {
+  background: var(--accent-solid);
+  color: #0b1b18;
+}
+.empty .syncRetryBtn {
+  margin: 12px auto 0;
+  display: inline-flex;
+  height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+}
 .viewtools {
   display: flex;
   align-items: center;
@@ -2487,7 +2518,8 @@ html[data-theme="light"] .sheetApply,
 html[data-theme="light"] .quickBadge,
 html[data-theme="light"] .wxBtns a.wxPrimary,
 html[data-theme="light"] .wxBtns button.wxPrimary,
-html[data-theme="light"] .tagpanel .panelend .sheetApply {
+html[data-theme="light"] .tagpanel .panelend .sheetApply,
+html[data-theme="light"] .syncRetryBtn:hover {
   color: #ffffff;
 }
 @media (max-width: 680px) {

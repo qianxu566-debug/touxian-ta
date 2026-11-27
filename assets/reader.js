@@ -1,9 +1,84 @@
 const CN_TIME=8*3600000;
+const DATA_CACHE_NAME='touxian-data-v1';
 export const dayString=(ms=Date.now())=>new Date(ms+CN_TIME).toISOString().slice(0,10);
-export async function compressed(path){
-  const r=await fetch(path,{cache:'no-cache'});
-  if(!r.ok)throw Error('HTTP '+r.status);
-  return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json();
+
+function cacheUrl(path){return new URL(path,location.href).href;}
+async function openDataCache(){
+  try{return (typeof caches!=='undefined'&&caches?.open)?await caches.open(DATA_CACHE_NAME):null;}catch{return null;}
+}
+async function decodeBuf(buf,gz){
+  if(!buf||!buf.byteLength)throw Error('EMPTY_BODY');
+  if(gz)return new Response(new Response(buf).body.pipeThrough(new DecompressionStream('gzip'))).json();
+  return JSON.parse(new TextDecoder().decode(buf));
+}
+export async function fetchWithRetry(path,{gz=true,timeoutMs=14000,retries=2,ver='',noCache=false}={}){
+  const url=ver?path+(path.includes('?')?'&':'?')+'v='+encodeURIComponent(ver):path;
+  for(let attempt=0;attempt<=retries;attempt++){
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(Error('TIMEOUT')),timeoutMs);
+    try{
+      const r=await fetch(url,{cache:(noCache||!ver)?'no-cache':'default',signal:ctrl.signal});
+      if(!r.ok){const e=Error('HTTP '+r.status);e.status=r.status;throw e;}
+      const buf=await r.arrayBuffer();
+      const data=await decodeBuf(buf,gz);
+      return {data,buf};
+    }catch(err){
+      if(attempt>=retries||err?.status===404)throw err;
+      await new Promise(res=>setTimeout(res,(attempt+1)*900));
+    }finally{
+      clearTimeout(timer);
+    }
+  }
+}
+export async function readCachedData(path,{gz=true}={}){
+  const cache=await openDataCache();
+  if(!cache)return null;
+  const key=cacheUrl(path);
+  try{
+    const res=await cache.match(key);
+    if(!res)return null;
+    const ver=res.headers.get('X-Touxian-Ver')||'';
+    const buf=await res.arrayBuffer();
+    const data=await decodeBuf(buf,gz);
+    return {data,ver};
+  }catch{
+    try{await cache.delete(key);}catch{}
+    return null;
+  }
+}
+export async function writeCachedData(path,buf,ver=''){
+  const cache=await openDataCache();
+  if(!cache)return;
+  try{
+    await cache.put(cacheUrl(path),new Response(buf,{headers:{'Content-Type':'application/octet-stream','X-Touxian-Ver':String(ver||''),'X-Touxian-At':String(Date.now())}}));
+  }catch{}
+}
+export async function pruneHistoryCache(maxKeep=6){
+  const cache=await openDataCache();
+  if(!cache)return;
+  try{
+    const keys=await cache.keys();
+    const hist=keys.filter(req=>/\/history\/\d{4}-\d{2}-\d{2}\.json\.gz$/i.test(new URL(req.url).pathname));
+    if(hist.length<=maxKeep)return;
+    const dated=await Promise.all(hist.map(async req=>{
+      const r=await cache.match(req);
+      return {req,at:Number(r?.headers?.get('X-Touxian-At')||0)};
+    }));
+    dated.sort((a,b)=>b.at-a.at);
+    await Promise.all(dated.slice(maxKeep).map(x=>cache.delete(x.req)));
+  }catch{}
+}
+export async function fetchCached(path,{gz=true,timeoutMs=14000,retries=2,ver='',forceNetwork=false,noCache=false}={}){
+  if(!forceNetwork&&ver){
+    const hit=await readCachedData(path,{gz});
+    if(hit&&hit.ver===ver)return {data:hit.data,fromCache:true,ver};
+  }
+  const {data,buf}=await fetchWithRetry(path,{gz,timeoutMs,retries,ver,noCache});
+  await writeCachedData(path,buf,ver);
+  return {data,fromCache:false,ver};
+}
+export async function compressed(path,opts={}){
+  return (await fetchWithRetry(path,{gz:true,...opts})).data;
 }
 export function ageDays(start,date){
   if(!start||!date)return null;
