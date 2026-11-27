@@ -9,16 +9,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=19">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=19">
+<link rel="icon" href="./assets/otter.svg?v=20">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=20">
 <style>[hidden]{display:none!important}</style>
 <script>try{if(localStorage.getItem('touxian-theme')==='light'){document.documentElement.dataset.theme='light';var m=document.getElementById('themeColorMeta');if(m)m.content='#f9fcfb';}}catch(e){}</script>
-<link rel="stylesheet" href="./assets/site.css?v=19">
+<link rel="stylesheet" href="./assets/site.css?v=20">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=19" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=20" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
     <button type="button" id="themeBtn" class="themeBtn" aria-pressed="false" aria-label="当前深色模式，点击切换浅色模式" title="切换浅色模式"><svg class="thMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="thSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg><span class="themeLbl" id="themeLbl">深色</span></button>
@@ -227,7 +227,7 @@
     <div class="wxCard appCard">
       <div id="appModalWxTip" class="wxTipTop" hidden><span>微信内会拦截安装包下载</span><span class="wxArrow">请点右上角 ··· ↗</span></div>
       <div class="appHead">
-        <img src="./assets/otter.svg?v=19" alt="" width="40" height="40">
+        <img src="./assets/otter.svg?v=20" alt="" width="40" height="40">
         <div>
           <h3 id="appModalTitle">偷闲獭 App</h3>
           <div class="appSub"><span class="appVerPill" id="appModalMeta">Android v2.0.1 · 仅 65 KB</span></div>
@@ -251,8 +251,8 @@
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=19';
-import {dayString,ageDays,compressed,fetchWithRetry,fetchCached,readCachedData,pruneHistoryCache,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=19';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,bindTrendChart,windowMetric} from './assets/daily.js?v=20';
+import {dayString,ageDays,compressed,fetchWithRetry,fetchCached,readCachedData,pruneHistoryCache,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=20';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -1229,6 +1229,7 @@ listing.addEventListener('click',e=>{
   if(rangeBtn){
     const box=card.querySelector('.trendBox');
     box.innerHTML=renderTrendPanel(trends,card.dataset.id,Number(rangeBtn.dataset.range));
+    bindTrendChart(box);
     return;
   }
   const appA=e.target.closest('.readApp');
@@ -1244,7 +1245,7 @@ listing.addEventListener('click',e=>{
   card.classList.toggle('trendOpen',willOpen);
   button.setAttribute('aria-expanded',String(willOpen));
   button.textContent=willOpen?'收起 ▴':'走势 ▾';
-  if(willOpen)box.innerHTML=renderTrendPanel(trends,card.dataset.id,1);
+  if(willOpen){box.innerHTML=renderTrendPanel(trends,card.dataset.id,7);bindTrendChart(box);}
 });
 listing.addEventListener('click',e=>{
   const catLink=e.target.closest('[data-category]');

@@ -23,6 +23,10 @@
   --down-tint: rgba(235, 154, 146, 0.13);
   --warn: #dfb972;
   --warn-tint: rgba(223, 185, 114, 0.13);
+  --chart-line: #f59e0b;
+  --chart-glow: rgba(245, 158, 11, 0.28);
+  --chart-guide: rgba(245, 158, 11, 0.58);
+  --chart-dot-ring: #111c23;
   --pill: rgba(195, 222, 226, 0.08);
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
@@ -1529,16 +1533,209 @@ body.rankSimple .activeBar { display: none !important; }
 .tmCell .flat { color: var(--ink-4); }
 .trendChart {
   margin-top: 10px;
-  padding-top: 9px;
+  padding-top: 10px;
   border-top: 1px solid var(--line-1);
 }
-.chartHead, .chartAxis {
+.tcReadout {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 6px 10px;
+  flex-wrap: wrap;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-1);
+  margin-bottom: 9px;
+  font-size: 12px;
+}
+.tcReadMain {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.tcDate {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--amber-tint);
+  color: var(--chart-line);
+  font-weight: 700;
+  font-size: 11.5px;
+}
+.tcSep { color: var(--ink-4); }
+.tcVal { font-weight: 700; color: var(--ink-1); }
+.tcDelta { font-weight: 600; }
+.tcDelta.up { color: var(--up); }
+.tcDelta.down { color: var(--down); }
+.tcDelta.flat { color: var(--ink-3); }
+.tcReadMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink-4);
+}
+.tcStage {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  height: 124px;
+  margin-top: 6px;
+}
+.tcYAxis {
+  flex: none;
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 5px 0;
+  text-align: right;
+  font-size: 10.5px;
+  color: var(--ink-4);
+  line-height: 1;
+}
+.tcCanvas {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  touch-action: pan-y;
+  cursor: crosshair;
+  user-select: none;
+  border-radius: 6px;
+}
+.tcCanvas:focus-visible {
+  outline: 1.5px solid var(--chart-line);
+  outline-offset: 2px;
+}
+.tcSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.tcOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.tcGuide {
+  position: absolute;
+  top: 4%;
+  bottom: 4%;
+  width: 0;
+  border-left: 1px dashed var(--chart-guide);
+  transform: translateX(-0.5px);
+}
+.tcDot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--chart-dot-ring);
+  border: 1.8px solid var(--chart-line);
+  transform: translate(-50%, -50%);
+}
+.tcDot.active { opacity: 0; }
+.tcActiveDot {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--chart-line);
+  border: 2.5px solid var(--chart-dot-ring);
+  box-shadow: 0 0 0 4px var(--chart-glow);
+  transform: translate(-50%, -50%);
+}
+.tcExtreme {
+  position: absolute;
+  font-size: 10px;
+  line-height: 1.2;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  color: var(--ink-3);
+  white-space: nowrap;
+  transform: translate(-50%, -145%);
+}
+.tcExtreme.edgeL { transform: translate(-10%, -145%); }
+.tcExtreme.edgeR { transform: translate(-90%, -145%); }
+.tcXAxis {
+  position: relative;
+  height: 18px;
+  margin: 4px 0 0 54px;
+  font-size: 10.5px;
+  color: var(--ink-4);
+}
+.tcXTick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.tcXTick.edgeL { transform: translateX(0); }
+.tcXTick.edgeR { transform: translateX(-100%); }
+.tcFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-1);
   font-size: 11px;
   color: var(--ink-3);
 }
-.trendChart svg { display: block; width: 100%; height: 64px; margin: 4px 0 2px; }
+.tcDetailToggle {
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--ink-2);
+  border-radius: 7px;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-weight: 500;
+  transition: border-color 140ms var(--ease), color 140ms var(--ease);
+}
+.tcDetailToggle:hover {
+  border-color: var(--line-3);
+  color: var(--accent);
+}
+.tcDetail {
+  margin-top: 8px;
+  max-height: 216px;
+  overflow-y: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line-1);
+  background: var(--bg-1);
+}
+.tcDetailRow {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--line-1);
+  background: transparent;
+  padding: 6px 10px;
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.tcDetailRow:last-child { border-bottom: 0; }
+.tcDetailRow:hover { background: var(--bg-2); }
+.tcDetailRow.active { background: var(--amber-tint); }
+.tcDetailRow b { font-weight: 600; color: var(--ink-1); }
+.tcDetailRow em { font-style: normal; font-weight: 600; text-align: right; }
+.tcDetailRow em.up { color: var(--up); }
+.tcDetailRow em.down { color: var(--down); }
+.tcDetailRow em.flat { color: var(--ink-4); }
 .trendEmpty { color: var(--ink-3); font-size: 12px; }
 
 /* Dense View: Desktop 7-Column Data Table (56px rows) */
@@ -2073,6 +2270,11 @@ footer a { color: var(--ink-3); }
   .book .aud { gap: 4px 6px; }
   .deltaPill { padding: 1px 5px; font-size: 10.5px; }
   .wordDiff { font-size: 10.5px; }
+  .tcStage { height: 114px; }
+  .tcYAxis { width: 42px; font-size: 10px; }
+  .tcXAxis { margin-left: 48px; font-size: 10px; }
+  .tcHint { display: none; }
+  .tcReadout { padding: 6px 8px; font-size: 11.5px; }
   .list.dense .denseHead { display: none; }
   .list.dense .book {
     grid-template-columns: 24px minmax(0, 1fr) auto;
@@ -2369,6 +2571,10 @@ html[data-theme="light"] {
   --down-tint: rgba(201, 59, 51, 0.10);
   --warn: #a6620c;
   --warn-tint: rgba(166, 98, 12, 0.12);
+  --chart-line: #d97706;
+  --chart-glow: rgba(217, 119, 6, 0.24);
+  --chart-guide: rgba(217, 119, 6, 0.55);
+  --chart-dot-ring: #f9fcfb;
   --pill: rgba(18, 56, 48, 0.068);
 }
 html[data-theme="light"] header { border-bottom-color: var(--line-2); }

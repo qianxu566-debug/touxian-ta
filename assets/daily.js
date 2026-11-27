@@ -1,4 +1,4 @@
-import { compressed, fetchCached, dayString } from './reader.js?v=19';
+import { compressed, fetchCached, dayString } from './reader.js?v=20';
 
 const nf = new Intl.NumberFormat('zh-CN');
 
@@ -283,16 +283,52 @@ export function renderRankBadges(radar, id, fallbackList = null) {
   return `<div class="rankHistory" aria-label="榜单履历">${items}</div>`;
 }
 
-function buildSparkline(series, dates, rangeDays = 1) {
-  if (!Array.isArray(series) || series.length < 2) {
-    return '<div class="trendEmpty">已记录 ' + (series?.length || 0) + ' 天数据，满 2 天自动绘制对比折线图。</div>';
+function escAttr(v) {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function fmtReadersDetail(v) {
+  if (!Number.isFinite(v)) return '暂无';
+  if (v >= 10000) return `${(v / 10000).toFixed(2).replace(/\.?0+$/, '')} 万`;
+  return `${nf.format(v)} 人`;
+}
+
+function fmtAxisVal(v, spanV) {
+  if (!Number.isFinite(v)) return '';
+  if (v >= 10000) {
+    if (spanV < 1000) return nf.format(v);
+    if (spanV < 20000) return `${(v / 10000).toFixed(2).replace(/\.?0+$/, '')}万`;
+    return `${(v / 10000).toFixed(1).replace(/\.0$/, '')}万`;
   }
-  const maxIdx = series[series.length - 1][0];
+  return nf.format(v);
+}
+
+function fmtDayDelta(delta, pctVal, hasPrev) {
+  if (!hasPrev || !Number.isFinite(delta)) {
+    return { text: '首次实测', cls: 'flat' };
+  }
+  const cls = deltaClass(delta);
+  const sign = delta > 0 ? '+' : delta < 0 ? '-' : '';
+  const numStr = delta === 0 ? '0' : `${sign}${nf.format(Math.abs(delta))}`;
+  const pctStr = Number.isFinite(pctVal) ? ` (${formatPct(pctVal)})` : '';
+  return { text: `较前日 ${numStr}${pctStr}`, cls };
+}
+
+function buildInteractiveChart(series, dates, rangeDays = 7, bookId = '') {
+  if (!Array.isArray(series) || series.length < 2) {
+    return '<div class="trendEmpty">已记录 ' + (series?.length || 0) + ' 天数据，满 2 天自动绘制交互走势图。</div>';
+  }
+  const lastIdx = series[series.length - 1][0];
   let pts;
   if (rangeDays === 1) {
     pts = series.slice(-2);
   } else if (rangeDays === 7) {
-    pts = series.filter((p) => p[0] >= maxIdx - 6);
+    if (dates[lastIdx]) {
+      const cutoff = shiftDate(dates[lastIdx], -6);
+      pts = series.filter((p) => dates[p[0]] && dates[p[0]] >= cutoff);
+    } else {
+      pts = series.filter((p) => p[0] >= lastIdx - 6);
+    }
   } else {
     pts = series.slice(-30);
   }
@@ -300,53 +336,138 @@ function buildSparkline(series, dates, rangeDays = 1) {
     return '<div class="trendEmpty">该时间窗暂仅 1 次实测记录，次日更新后即可绘制折线。</div>';
   }
 
-  const w = 280;
-  const h = 62;
-  const padX = 8;
-  const padY = 8;
+  const startPos = series.indexOf(pts[0]);
   const vals = pts.map((p) => p[1]);
   const minV = Math.min(...vals);
   const maxV = Math.max(...vals);
-  const spanV = maxV - minV || 1;
+  const spanV = maxV - minV;
   const minX = pts[0][0];
   const maxX = pts[pts.length - 1][0];
   const spanX = maxX - minX || 1;
+  const padX = 2.6;
 
-  const xy = pts.map(([idx, val]) => [
-    padX + ((idx - minX) / spanX) * (w - 2 * padX),
-    h - padY - ((val - minV) / spanV) * (h - 2 * padY),
-  ]);
-  const coords = xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`);
+  const pointObjs = pts.map(([idx, val], i) => {
+    const prevPt = i > 0 ? pts[i - 1] : (startPos > 0 ? series[startPos - 1] : null);
+    const dPrev = prevPt ? val - prevPt[1] : null;
+    const pPrev = prevPt && prevPt[1] > 0 ? (100 * dPrev) / prevPt[1] : null;
+    const { text: deltaText, cls: deltaCls } = fmtDayDelta(dPrev, pPrev, Boolean(prevPt));
+    const dateFull = dates[idx] || '';
+    const date = dateFull ? dateFull.slice(5) : `#${i + 1}`;
+    const xPct = pts.length === 1 ? 50 : padX + ((idx - minX) / spanX) * (100 - 2 * padX);
+    const ySvg = spanV === 0 ? 100 : 182 - ((val - minV) / spanV) * 164;
+    const yPct = (ySvg / 200) * 100;
+    return {
+      i,
+      date,
+      dateFull: dateFull || date,
+      val,
+      valText: fmtReadersDetail(val),
+      hasPrev: Boolean(prevPt),
+      deltaText,
+      deltaCls,
+      xPct: Number(xPct.toFixed(2)),
+      yPct: Number(yPct.toFixed(2)),
+      ySvg: Number(ySvg.toFixed(1)),
+    };
+  });
 
-  const firstDate = dates[minX]?.slice(5) || '';
-  const lastDate = dates[maxX]?.slice(5) || '';
-  const fmt = (v) => (v >= 10000 ? `${(v / 10000).toFixed(1)}万` : nf.format(v));
-  const netUp = vals[vals.length - 1] >= vals[0];
-  const stroke = netUp ? 'var(--up)' : 'var(--down)';
-  const fill = netUp ? 'var(--up-tint)' : 'var(--down-tint)';
-  const area = `${xy[0][0].toFixed(1)},${h - padY} ${coords.join(' ')} ${xy[xy.length - 1][0].toFixed(1)},${h - padY}`;
-  const dots = pts.length <= 10
-    ? xy.map(([x, y]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.8" fill="${stroke}"/>`).join('')
-    : '';
+  const last = pointObjs[pointObjs.length - 1];
+  const coords = pointObjs.map((p) => `${(p.xPct * 10).toFixed(1)},${p.ySvg}`);
+  const area = `${(pointObjs[0].xPct * 10).toFixed(1)},196 ${coords.join(' ')} ${(last.xPct * 10).toFixed(1)},196`;
+  const gradId = `tcg-${String(bookId || 'x').replace(/[^a-zA-Z0-9_-]/g, '')}-${rangeDays}`;
 
-  const headLeft = rangeDays === 1
-    ? `单日变化（${firstDate} → ${lastDate}）`
-    : `近 ${rangeDays} 天走势（实测 ${pts.length} 天）`;
-  const headRight = rangeDays === 1
-    ? `${fmt(vals[0])} → ${fmt(vals[vals.length - 1])}`
-    : `${fmt(minV)} ～ ${fmt(maxV)}`;
+  const yTicks = spanV === 0
+    ? ['', fmtAxisVal(maxV, 0), '']
+    : [fmtAxisVal(maxV, spanV), fmtAxisVal(Math.round((maxV + minV) / 2), spanV), fmtAxisVal(minV, spanV)];
+
+  const peakPt = pointObjs.find((p) => p.val === maxV);
+  const troughPt = pointObjs.find((p) => p.val === minV);
+  const showDotIdx = new Set();
+  if (pointObjs.length <= 12) {
+    pointObjs.forEach((p) => showDotIdx.add(p.i));
+  } else {
+    showDotIdx.add(0);
+    showDotIdx.add(last.i);
+    if (peakPt) showDotIdx.add(peakPt.i);
+    if (troughPt) showDotIdx.add(troughPt.i);
+  }
+
+  const dotsHtml = pointObjs
+    .filter((p) => showDotIdx.has(p.i))
+    .map((p) => `<span class="tcDot${p.i === last.i ? ' active' : ''}" data-pt-idx="${p.i}" style="left:${p.xPct}%;top:${p.yPct}%"></span>`)
+    .join('');
+
+  let extremesHtml = '';
+  if (pointObjs.length >= 3 && spanV > 0) {
+    const edgeCls = (x) => (x < 14 ? ' edgeL' : x > 86 ? ' edgeR' : '');
+    if (peakPt) {
+      extremesHtml += `<span class="tcExtreme max${edgeCls(peakPt.xPct)}" data-pt-idx="${peakPt.i}" style="left:${peakPt.xPct}%;top:${peakPt.yPct}%"${peakPt.i === last.i ? ' hidden' : ''}>高 ${fmtAxisVal(peakPt.val, spanV)}</span>`;
+    }
+    if (troughPt && troughPt.i !== peakPt?.i) {
+      extremesHtml += `<span class="tcExtreme min${edgeCls(troughPt.xPct)}" data-pt-idx="${troughPt.i}" style="left:${troughPt.xPct}%;top:${troughPt.yPct}%"${troughPt.i === last.i ? ' hidden' : ''}>低 ${fmtAxisVal(troughPt.val, spanV)}</span>`;
+    }
+  }
+
+  const xIndices = pointObjs.length <= 7
+    ? pointObjs.map((p) => p.i)
+    : [...new Set([0, Math.round((pointObjs.length - 1) * 0.25), Math.round((pointObjs.length - 1) * 0.5), Math.round((pointObjs.length - 1) * 0.75), pointObjs.length - 1])];
+  const xAxisHtml = xIndices
+    .map((idx, pos) => {
+      const p = pointObjs[idx];
+      const edgeCls = pos === 0 ? ' edgeL' : pos === xIndices.length - 1 ? ' edgeR' : '';
+      return `<span class="tcXTick${edgeCls}" style="left:${p.xPct}%">${p.date}</span>`;
+    })
+    .join('');
+
+  const detailRowsHtml = [...pointObjs]
+    .reverse()
+    .map((p) => {
+      const shortDeltaTxt = p.hasPrev ? p.deltaText.replace(/^较前日\s*/, '') : '首次实测';
+      return `<button type="button" class="tcDetailRow${p.i === last.i ? ' active' : ''}" data-pt-idx="${p.i}"><span>${escAttr(p.dateFull)}</span><b>${p.valText}</b><em class="${p.deltaCls}">${shortDeltaTxt}</em></button>`;
+    })
+    .join('');
+
+  const compactPts = pointObjs.map(({ i, date, valText, deltaText, deltaCls, xPct, yPct }) => ({
+    i,
+    date,
+    valText,
+    deltaText,
+    deltaCls,
+    xPct,
+    yPct,
+  }));
+
+  const winLabel = rangeDays === 1 ? '单日对比' : `近 ${rangeDays} 天 · 实测 ${pointObjs.length} 天`;
+  const rangeExt = `最低 ${fmtReadersDetail(minV)} · 最高 ${fmtReadersDetail(maxV)}`;
 
   return (
-    `<div class="trendChart">` +
-    `<div class="chartHead"><span>${headLeft}</span><span>${headRight}</span></div>` +
-    `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="在读人数走势折线图">` +
-    `<line x1="0" y1="${padY}" x2="${w}" y2="${padY}" stroke="var(--line-2)" stroke-dasharray="2 4"/>` +
-    `<line x1="0" y1="${h - padY}" x2="${w}" y2="${h - padY}" stroke="var(--line-2)" stroke-dasharray="2 4"/>` +
-    `<polygon points="${area}" fill="${fill}"/>` +
-    `<polyline points="${coords.join(' ')}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` +
-    dots +
+    `<div class="trendChart" data-pts="${escAttr(JSON.stringify(compactPts))}">` +
+    `<div class="tcReadout" aria-live="polite">` +
+    `<div class="tcReadMain"><span class="tcDate">${last.date}</span><span class="tcSep">·</span><b class="tcVal">在读 ${last.valText}</b><span class="tcSep">·</span><span class="tcDelta ${last.deltaCls}">${last.deltaText}</span></div>` +
+    `<div class="tcReadMeta"><span class="tcWinTag">${winLabel}</span><span class="tcHint">滑动/点击节点</span></div>` +
+    `</div>` +
+    `<div class="tcStage">` +
+    `<div class="tcYAxis" aria-hidden="true"><span>${yTicks[0]}</span><span>${yTicks[1]}</span><span>${yTicks[2]}</span></div>` +
+    `<div class="tcCanvas" tabindex="0" role="slider" aria-label="在读人数走势折线图，左右键或滑动切换日期" aria-valuemin="0" aria-valuemax="${last.i}" aria-valuenow="${last.i}" aria-valuetext="${escAttr(`${last.date} 在读 ${last.valText} ${last.deltaText}`)}">` +
+    `<svg class="tcSvg" viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true">` +
+    `<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--chart-line)" stop-opacity="0.30"/><stop offset="100%" stop-color="var(--chart-line)" stop-opacity="0.01"/></linearGradient></defs>` +
+    `<line x1="0" y1="18" x2="1000" y2="18" stroke="var(--line-2)" stroke-dasharray="4 6" vector-effect="non-scaling-stroke"/>` +
+    `<line x1="0" y1="100" x2="1000" y2="100" stroke="var(--line-1)" stroke-dasharray="4 6" vector-effect="non-scaling-stroke"/>` +
+    `<line x1="0" y1="182" x2="1000" y2="182" stroke="var(--line-2)" stroke-dasharray="4 6" vector-effect="non-scaling-stroke"/>` +
+    `<polygon points="${area}" fill="url(#${gradId})"/>` +
+    `<polyline points="${coords.join(' ')}" fill="none" stroke="var(--chart-line)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` +
     `</svg>` +
-    `<div class="chartAxis"><span>${firstDate}</span><span>${lastDate}</span></div>` +
+    `<div class="tcOverlay" aria-hidden="true">` +
+    `<div class="tcGuide" style="left:${last.xPct}%"></div>` +
+    dotsHtml +
+    extremesHtml +
+    `<span class="tcActiveDot" style="left:${last.xPct}%;top:${last.yPct}%"></span>` +
+    `</div>` +
+    `</div>` +
+    `</div>` +
+    `<div class="tcXAxis" aria-hidden="true">${xAxisHtml}</div>` +
+    `<div class="tcFoot"><span class="tcRangeExt">${rangeExt}</span><button type="button" class="tcDetailToggle" aria-expanded="false">查看每日明细（${pointObjs.length}天） ▾</button></div>` +
+    `<div class="tcDetail" hidden>${detailRowsHtml}</div>` +
     `</div>`
   );
 }
@@ -403,12 +524,12 @@ export function windowMetric(t, rangeDays, dates = null, { requireLatest = false
   return { d: delta, p: pctVal, base, cur, spanDays, note: spanDays < rangeDays ? `（近${spanDays}天）` : '' };
 }
 
-export function renderTrendPanel(trends, id, rangeDays = 1) {
+export function renderTrendPanel(trends, id, rangeDays = 7) {
   const t = getTrend(trends, id);
   if (!t) {
     return '<div class="trendEmpty">正在积累该书的每日实测数据，次日采集完成后即可查看变化趋势。</div>';
   }
-  const activeRange = [1, 7, 30].includes(Number(rangeDays)) ? Number(rangeDays) : 1;
+  const activeRange = [1, 7, 30].includes(Number(rangeDays)) ? Number(rangeDays) : 7;
   const cols = [
     { range: 1, label: dayLabel(trends.latestDate), ...windowMetric(t, 1, trends.dates) },
     { range: 7, label: '近 7 天', ...windowMetric(t, 7, trends.dates) },
@@ -427,5 +548,141 @@ export function renderTrendPanel(trends, id, rangeDays = 1) {
     })
     .join('');
 
-  return `<div class="trendMetrics" role="tablist" aria-label="切换走势时间范围">${cells}</div>${buildSparkline(t.series, trends.dates || [], activeRange)}`;
+  return `<div class="trendMetrics" role="tablist" aria-label="切换走势时间范围">${cells}</div>${buildInteractiveChart(t.series, trends.dates || [], activeRange, id)}`;
+}
+
+export function bindTrendChart(container) {
+  const root = container?.querySelector?.('.trendChart[data-pts]');
+  if (!root || root.dataset.bound === '1') return;
+  let pts;
+  try {
+    pts = JSON.parse(root.dataset.pts || '[]');
+  } catch {
+    return;
+  }
+  if (!Array.isArray(pts) || !pts.length) return;
+  root.dataset.bound = '1';
+
+  const canvas = root.querySelector('.tcCanvas');
+  const dateEl = root.querySelector('.tcDate');
+  const valEl = root.querySelector('.tcVal');
+  const deltaEl = root.querySelector('.tcDelta');
+  const guideEl = root.querySelector('.tcGuide');
+  const activeDotEl = root.querySelector('.tcActiveDot');
+  const dotEls = [...root.querySelectorAll('.tcDot[data-pt-idx]')];
+  const extremeEls = [...root.querySelectorAll('.tcExtreme[data-pt-idx]')];
+  const detailToggle = root.querySelector('.tcDetailToggle');
+  const detailBox = root.querySelector('.tcDetail');
+  const detailRows = [...root.querySelectorAll('.tcDetailRow[data-pt-idx]')];
+
+  let activeIdx = pts.length - 1;
+  let pinned = false;
+  let scrubbing = false;
+  let downX = 0;
+  let downY = 0;
+
+  const setActive = (idx) => {
+    const safeIdx = Math.max(0, Math.min(pts.length - 1, idx));
+    const p = pts[safeIdx];
+    if (!p) return;
+    activeIdx = safeIdx;
+    if (dateEl) dateEl.textContent = p.date;
+    if (valEl) valEl.textContent = `在读 ${p.valText}`;
+    if (deltaEl) {
+      deltaEl.textContent = p.deltaText;
+      deltaEl.className = `tcDelta ${p.deltaCls}`;
+    }
+    if (guideEl) guideEl.style.left = `${p.xPct}%`;
+    if (activeDotEl) {
+      activeDotEl.style.left = `${p.xPct}%`;
+      activeDotEl.style.top = `${p.yPct}%`;
+    }
+    for (const d of dotEls) d.classList.toggle('active', Number(d.dataset.ptIdx) === safeIdx);
+    for (const ex of extremeEls) ex.hidden = Number(ex.dataset.ptIdx) === safeIdx;
+    for (const row of detailRows) row.classList.toggle('active', Number(row.dataset.ptIdx) === safeIdx);
+    if (canvas) {
+      canvas.setAttribute('aria-valuenow', String(safeIdx));
+      canvas.setAttribute('aria-valuetext', `${p.date} 在读 ${p.valText} ${p.deltaText}`);
+    }
+  };
+
+  const pickByClientX = (clientX) => {
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width) return;
+    const relPct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    let best = 0;
+    let bestDist = Infinity;
+    for (let k = 0; k < pts.length; k++) {
+      const dist = Math.abs(pts[k].xPct - relPct);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = k;
+      }
+    }
+    setActive(best);
+  };
+
+  if (canvas) {
+    canvas.addEventListener('pointerdown', (e) => {
+      downX = e.clientX;
+      downY = e.clientY;
+      scrubbing = true;
+      if (e.pointerType === 'mouse') pinned = true;
+      pickByClientX(e.clientX);
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'mouse') {
+        pickByClientX(e.clientX);
+        return;
+      }
+      if (!scrubbing) return;
+      const dx = Math.abs(e.clientX - downX);
+      const dy = Math.abs(e.clientY - downY);
+      if (dx >= dy * 0.7 || dx > 6) {
+        pickByClientX(e.clientX);
+      }
+    });
+    const endScrub = () => { scrubbing = false; };
+    canvas.addEventListener('pointerup', endScrub);
+    canvas.addEventListener('pointercancel', endScrub);
+    canvas.addEventListener('pointerleave', (e) => {
+      if (e.pointerType === 'mouse' && !pinned) setActive(pts.length - 1);
+    });
+    canvas.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        pinned = true;
+        setActive(activeIdx - 1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        pinned = true;
+        setActive(activeIdx + 1);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        pinned = true;
+        setActive(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        pinned = true;
+        setActive(pts.length - 1);
+      }
+    });
+  }
+
+  if (detailToggle && detailBox) {
+    detailToggle.addEventListener('click', () => {
+      const open = detailBox.hidden;
+      detailBox.hidden = !open;
+      detailToggle.setAttribute('aria-expanded', String(open));
+      detailToggle.textContent = open ? '收起每日明细 ▴' : `查看每日明细（${pts.length}天） ▾`;
+    });
+  }
+
+  for (const row of detailRows) {
+    row.addEventListener('click', () => {
+      pinned = true;
+      setActive(Number(row.dataset.ptIdx));
+    });
+  }
 }
