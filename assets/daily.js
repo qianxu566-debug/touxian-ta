@@ -1,4 +1,4 @@
-import { compressed, dayString } from './reader.js?v=17';
+import { compressed, dayString } from './reader.js?v=18';
 
 const nf = new Intl.NumberFormat('zh-CN');
 
@@ -400,12 +400,13 @@ export function renderTrendPanel(trends, id, rangeDays = 1) {
   const cells = cols
     .map((c) => {
       const isAct = c.range === activeRange;
-      const head = `${c.label}${c.note}`;
+      const head = c.label;
+      const tip = c.note ? `${c.label}${c.note}` : c.label;
       if (!Number.isFinite(c.d)) {
-        return `<button type="button" class="tmCell${isAct ? ' active' : ''}" data-range="${c.range}" aria-pressed="${isAct}"><small>${head}</small><b class="flat">积累中</b><em>点击切图</em></button>`;
+        return `<button type="button" class="tmCell${isAct ? ' active' : ''}" data-range="${c.range}" aria-pressed="${isAct}" title="${tip}"><small>${head}</small><b class="flat">积累中</b><em>点击切图</em></button>`;
       }
       const cls = deltaClass(c.d);
-      return `<button type="button" class="tmCell${isAct ? ' active' : ''}" data-range="${c.range}" aria-pressed="${isAct}"><small>${head}</small><b class="${cls}">${shortDelta(c.d)}</b><em class="${cls}">${formatPct(c.p) || '—'}</em></button>`;
+      return `<button type="button" class="tmCell${isAct ? ' active' : ''}" data-range="${c.range}" aria-pressed="${isAct}" title="${tip}"><small>${head}</small><b class="${cls}">${shortDelta(c.d)}</b><em class="${cls}">${formatPct(c.p) || '—'}</em></button>`;
     })
     .join('');
 

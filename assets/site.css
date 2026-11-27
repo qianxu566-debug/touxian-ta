@@ -346,6 +346,7 @@ body.sideCollapsed .filters { display: none; }
 .mastRankBar {
   margin-top: 11px;
   min-height: 40px;
+  width: fit-content;
   max-width: 500px;
   display: flex;
   align-items: center;
@@ -2400,27 +2401,44 @@ html[data-theme="light"] .helpBtn:hover {
   border-color: rgba(139, 230, 213, 0.62);
 }
 html[data-theme="light"] .modeHelp {
-  background: rgba(249, 252, 251, 0.97);
-  border-color: var(--line-2);
-  color: var(--ink-2);
-  box-shadow: 0 8px 20px rgba(14, 34, 30, 0.16);
+  background: rgba(10, 28, 25, 0.90);
+  border-color: rgba(206, 238, 232, 0.24);
+  color: #dceee9;
+  box-shadow: 0 10px 26px rgba(6, 18, 16, 0.30);
 }
-html[data-theme="light"] .search,
+html[data-theme="light"] .modeHelp strong { color: #f6fbfa; }
 html[data-theme="light"] .mastRankBar {
-  background: rgba(249, 252, 251, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.98);
-  box-shadow: 0 4px 14px rgba(14, 34, 30, 0.22);
+  background: rgba(10, 28, 25, 0.58);
+  border: 1px solid rgba(206, 238, 232, 0.24);
+  box-shadow: 0 4px 14px rgba(6, 18, 16, 0.24);
+}
+html[data-theme="light"] .mastRankBar label { color: #a7cbc4; }
+html[data-theme="light"] #rankState { color: #e8f5f2; }
+html[data-theme="light"] #rankDate {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(206, 238, 232, 0.28);
+  color: #f6fbfa;
+  color-scheme: dark;
+}
+html[data-theme="light"] #rankRetry {
+  background: rgba(114, 216, 196, 0.20);
+  color: #8be6d5;
+}
+html[data-theme="light"] .search {
+  background: rgba(10, 28, 25, 0.62);
+  border: 1px solid rgba(206, 238, 232, 0.26);
+  box-shadow: 0 4px 14px rgba(6, 18, 16, 0.22);
 }
 html[data-theme="light"] .search:focus-within {
-  background: #ffffff;
-  border-color: var(--accent);
+  background: rgba(10, 28, 25, 0.80);
+  border-color: rgba(114, 216, 196, 0.65);
 }
-html[data-theme="light"] .search input { color: var(--ink-1); }
-html[data-theme="light"] .search input::placeholder { color: var(--ink-3); }
-html[data-theme="light"] #rankDate {
-  background: #ffffff;
-  border-color: var(--line-2);
-  color: var(--ink-1);
+html[data-theme="light"] .search .searchIcon { color: #9ec4bd; }
+html[data-theme="light"] .search input { color: #f6fbfa; }
+html[data-theme="light"] .search input::placeholder { color: #a7cbc4; }
+html[data-theme="light"] .search button {
+  background: #1ea48b;
+  color: #ffffff;
 }
 html[data-theme="light"] .book,
 html[data-theme="light"] .filters,

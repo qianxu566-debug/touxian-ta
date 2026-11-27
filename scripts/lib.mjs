@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 export const CN_OFFSET = 8 * 3600 * 1000;
 export const MIN_READERS = 8000;
+export const UNAVAIL_HIDE_DAYS = 2;
+export const UNAVAIL_PURGE_DAYS = 30;
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 export function cnDay(ms = Date.now()) {
@@ -263,6 +265,31 @@ export async function fetchJson(url, { timeoutMs = 15000, retries = 2 } = {}) {
     }
   }
   throw lastErr;
+}
+
+export async function checkSdkVisibility(bookId) {
+  const hosts = ['https://api.fanqiesdk.com', 'https://api-lf.fanqiesdk.com'];
+  for (const host of hosts) {
+    try {
+      const res = await fetch(
+        `${host}/api/novel/book/page/data/v1/?device_platform=android&aid=13&book_id=${encodeURIComponent(bookId)}`,
+        {
+          signal: AbortSignal.timeout(8000),
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
+            Accept: 'application/json, text/plain, */*',
+          },
+        }
+      );
+      if (!res.ok) continue;
+      const json = await res.json();
+      if (json?.code === 0 && (json.data?.visibility_status === 0 || json.data?.visibility_status === 1)) {
+        return json.data.visibility_status;
+      }
+    } catch {}
+  }
+  return null;
 }
 
 export async function runPool(items, concurrency, workerFn, { shouldStop = () => false } = {}) {

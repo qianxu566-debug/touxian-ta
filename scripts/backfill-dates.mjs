@@ -29,12 +29,16 @@ const histFile = path.join('history', `${today}.json.gz`);
 if (fs.existsSync(histFile)) {
   try {
     const snap = readGzJson(histFile);
-    for (const s of snap.scopes || []) {
-      for (const r of s.rows || []) {
-        const id = String(r.id || '');
-        if (id && !seenIds.has(id)) {
-          seenIds.add(id);
-          priorityIds.push(id);
+    for (const targetMold of [1, 2]) {
+      for (const s of snap.scopes || []) {
+        if ((targetMold === 1 ? s.mold === 1 : s.mold !== 1)) {
+          for (const r of s.rows || []) {
+            const id = String(r.id || '');
+            if (id && !seenIds.has(id)) {
+              seenIds.add(id);
+              priorityIds.push(id);
+            }
+          }
         }
       }
     }

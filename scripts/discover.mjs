@@ -102,6 +102,9 @@ function absorbBook(row) {
     next.score = row.score;
   }
   if (row.rankInfo) next.rankInfo = row.rankInfo;
+  delete next.unavailDays;
+  delete next.unavailSince;
+  delete next.unavailLastDate;
   if (row.coverUrl) {
     const clean = sanitizeImageUrl(row.coverUrl);
     if (clean) {

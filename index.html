@@ -9,16 +9,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=17">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=17">
+<link rel="icon" href="./assets/otter.svg?v=18">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=18">
 <style>[hidden]{display:none!important}</style>
 <script>try{if(localStorage.getItem('touxian-theme')==='light'){document.documentElement.dataset.theme='light';var m=document.getElementById('themeColorMeta');if(m)m.content='#f9fcfb';}}catch(e){}</script>
-<link rel="stylesheet" href="./assets/site.css?v=17">
+<link rel="stylesheet" href="./assets/site.css?v=18">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=17" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=18" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
     <button type="button" id="themeBtn" class="themeBtn" aria-pressed="false" aria-label="当前深色模式，点击切换浅色模式" title="切换浅色模式"><svg class="thMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="thSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg><span class="themeLbl" id="themeLbl">深色</span></button>
@@ -227,7 +227,7 @@
     <div class="wxCard appCard">
       <div id="appModalWxTip" class="wxTipTop" hidden><span>微信内会拦截安装包下载</span><span class="wxArrow">请点右上角 ··· ↗</span></div>
       <div class="appHead">
-        <img src="./assets/otter.svg?v=17" alt="" width="40" height="40">
+        <img src="./assets/otter.svg?v=18" alt="" width="40" height="40">
         <div>
           <h3 id="appModalTitle">偷闲獭 App</h3>
           <div class="appSub"><span class="appVerPill" id="appModalMeta">Android v2.0.1 · 仅 65 KB</span></div>
@@ -251,8 +251,8 @@
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=17';
-import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=17';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=18';
+import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=18';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -355,7 +355,7 @@ const modes={
   debut:['首秀','聚焦 60 万字内、近期新晋冲榜或实测涨破万读的起量连载新书，追踪 14 天首秀期增长。']
 };
 const modeHelpMap={
-  rank:{btn:'? 榜单说明',html:'<p><strong>六大榜单口径说明：</strong></p><p>· <strong>阅读榜 / 新书榜</strong>：完整抓取全部 <strong>40 个官方大分类（男频 19 + 女频 21）</strong>前 100 名；不选主分类时按在读人数总览，选定主分类后按官方名次 <strong>#1 → #100</strong>，支持组合筛选与历史采集日回看。<br>· <strong>黑马榜</strong>：官方男女频黑马榜各前 50 名（共 <strong>100 本</strong>），顶部支持切换全部/男频/女频与历史采集日。<br>· <strong>暴涨榜</strong>：偷闲獭独家实时榜，聚焦<strong>连载中</strong>作品近 7 天 / 近 30 天实测涨势前 <strong>100 名</strong>；默认按<strong>增速%</strong>（要求当前在读 ≥1 万、起始基数 ≥5,000、净增 &gt;0，专挖官方榜外起飞黑马），也可切换<strong>净增人数</strong>看大盘爆量。<br>· <strong>口碑榜</strong>：偷闲獭独家连载高分前 <strong>100 名</strong>，采用<strong>贝叶斯加权口碑分</strong>（要求点评人数 ≥200，平滑参数防小样本刷分），并自动过滤已确认停更超 30 天的断更书。<br>· <strong>完结榜</strong>：偷闲獭独家高分完本前 <strong>100 名</strong>，同样采用贝叶斯加权口碑分（点评人数 ≥200），专供书荒找一口气看爽的完结神作。</p>'},
+  rank:{btn:'? 榜单说明',html:'<p><strong>六大榜单口径说明：</strong></p><p>· <strong>阅读榜</strong>：完整抓取全部 <strong>40 个官方大分类（男频 19 + 女频 21）</strong>前 100 名（保留经典完结作，自动剔除尾部 &lt;5,000 在读）；不选主分类时按在读人数总览，选定主分类后按名次 <strong>#1 → #100</strong>，支持组合筛选与历史采集日回看。<br>· <strong>新书榜</strong>：完整抓取 <strong>40 个官方大分类前 100 名精选净化</strong>，自动剔除<strong>已完结、在读 &lt;5,000、停更超 7 天及开书超半年</strong>的老书/烂尾书；选定主分类后按精选顺序 <strong>#1 → #N</strong> 排列。<br>· <strong>黑马榜</strong>：官方男女频黑马榜各前 50 名（共 <strong>100 本</strong>），顶部支持切换全部/男频/女频与历史采集日。<br>· <strong>暴涨榜</strong>：偷闲獭独家实时榜，聚焦<strong>连载中</strong>作品近 7 天 / 近 30 天实测涨势前 <strong>100 名</strong>；默认按<strong>增速%</strong>（要求当前在读 ≥1 万、起始基数 ≥5,000、净增 &gt;0，专挖官方榜外起飞黑马），也可切换<strong>净增人数</strong>看大盘爆量。<br>· <strong>口碑榜</strong>：偷闲獭独家连载高分前 <strong>100 名</strong>，采用<strong>贝叶斯加权口碑分</strong>（要求点评人数 ≥200，平滑参数防小样本刷分），并自动过滤已确认停更超 30 天的断更书。<br>· <strong>完结榜</strong>：偷闲獭独家高分完本前 <strong>100 名</strong>，同样采用贝叶斯加权口碑分（点评人数 ≥200），专供书荒找一口气看爽的完结神作。</p>'},
   sweep:{btn:'? 什么是扫榜',html:'<p><strong>什么是扫榜：</strong>「扫榜」会每天自动记录各分类前 100 名与特色榜，把近 1 / 7 / 30 天内<strong>只要上过榜的作品全部汇总到一起</strong>——哪怕今天掉出榜单，在扫榜池里依然能被搜到。</p><p><strong>怎么用最高效：</strong>你可以切换「窗口新上榜」只看近期刚冲进来的新面孔，叠加主分类、题材、走势状态（如「一路在涨」），默认按<strong>区间涨幅</strong>排序捉黑马。</p>'},
   debut:{btn:'? 什么是首秀',html:'<p><strong>什么是首秀：</strong>「首秀」专门淘近期刚刚冒头且<strong>已经起量（≥8,000 在读、连载中、60 万字内）</strong>的潜力新书，免去追太瘦幼苗的烦恼。</p><p><strong>三大新晋来源 &amp; 时间窗说明：</strong>包含「新书榜首秀」「阅读·黑马新晋」与「破万新苗（实测从 1 万以下冲破 1 万在读）」，以首次突破日为首秀日追踪 14 天累计与日均涨势。<em>注：当前榜单与全库实测自 11-22 起积累，满 7 天/14 天后各时间窗将自动拉开区分。</em></p>'}
 };
@@ -397,8 +397,39 @@ function tagsFor(b,ch=''){
   }
   return cache.get(ch);
 }
+const rawLower=v=>String(v||'').normalize('NFKC').toLowerCase();
+const NEG_START_RE=/^(?:并非|绝非|不是|不算|不算是|不走|不写|不要|拒绝|远离|没有|别当|莫当|非|无|不|没)/;
+const NEG_BEFORE_RE=/(?:并非纯|并非真|不是纯|不是真|非纯|非真|并非|绝非|不是|不算|不算是|不走|不写|不要|拒绝|远离|没有|别当|莫当|非|无|不|没)$/;
+function hasPositiveMatch(rawText,normText,rawTerm,normTerm){
+  if(!normText||!normText.includes(normTerm))return false;
+  if(normTerm.length<2||NEG_START_RE.test(normTerm))return true;
+  if(rawText&&rawTerm&&rawText.includes(rawTerm)){
+    let pos=0;
+    while(true){
+      const idx=rawText.indexOf(rawTerm,pos);
+      if(idx===-1)return false;
+      const pre=rawText.slice(Math.max(0,idx-6),idx);
+      if(!NEG_BEFORE_RE.test(pre))return true;
+      pos=idx+rawTerm.length;
+    }
+  }
+  let pos=0;
+  while(true){
+    const idx=normText.indexOf(normTerm,pos);
+    if(idx===-1)return false;
+    const pre=normText.slice(Math.max(0,idx-6),idx);
+    if(!NEG_BEFORE_RE.test(pre))return true;
+    pos=idx+normTerm.length;
+  }
+}
 function getTexts(b){
-  if(!textIndex.has(b))textIndex.set(b,{title:norm(b.title),intro:norm(b.intro),author:norm(b.author),tags:tagsFor(b).map(norm)});
+  if(!textIndex.has(b)){
+    const tlist=tagsFor(b);
+    textIndex.set(b,{
+      title:norm(b.title),intro:norm(b.intro),author:norm(b.author),tags:tlist.map(norm),
+      rawTitle:rawLower(b.title),rawIntro:rawLower(b.intro),rawTags:tlist.map(rawLower)
+    });
+  }
   return textIndex.get(b);
 }
 let mold=2,surgeWin=7,surgeMode='pct',userDense=false,rankStateBase='',rankDay=null,rankDates=[],rankBooks=[],rankLookup=new Map(),rankBusy=false,rankError='',loadSequence=0;
@@ -508,17 +539,33 @@ function rebuildRank(){
   }
   const gender=channel==='女频'?'0':'1';
   const scopes=(rankDay?.scopes||[]).filter(s=>s.gender===gender&&s.mold===mold&&s.ok);
+  const rankAtDate=rankDay?.date||trends.latestDate||radar.latestRankDate||dayString();
+  const rankRefSec=(rankDay?.date&&/^\d{4}-\d{2}-\d{2}$/.test(rankDay.date))?Math.floor(Date.parse(rankDay.date+'T23:59:59+08:00')/1000):refNowSec();
   rankLookup=new Map();
   let maxPos=0;
-  for(const scope of scopes)for(const row of scope.rows){
-    if(row.pos>maxPos)maxPos=row.pos;
-    let b=rankLookup.get(row.id);
-    if(!b){
+  for(const scope of scopes){
+    let keptPos=0;
+    for(const row of scope.rows){
+      if(row.pos>maxPos)maxPos=row.pos;
       const base=lookupBook(row.id)||{};
-      b={...base,...row,lastUpdate:row.lastUpdate??base.lastUpdate,score:row.score??base.score,scoreCount:row.scoreCount??base.scoreCount,observed:scope.observed,readersText:'',channel,primary:[],positions:{},intro:row.intro||base.intro,coverUrl:row.coverUrl||base.coverUrl};
-      rankLookup.set(row.id,b);
+      const effReaders=row.readers??base.readers;
+      const effStatus=row.status||base.status||'';
+      const effLastUpdate=row.lastUpdate??base.lastUpdate;
+      if((mold===1||mold===2)&&(!Number.isFinite(effReaders)||effReaders<5000))continue;
+      if(mold===1){
+        if(effStatus==='已完结')continue;
+        if(Number.isFinite(effLastUpdate)&&effLastUpdate>946684800&&(rankRefSec-effLastUpdate)>7*86400)continue;
+        const ad=ageDays(starts[row.id]?.start,rankAtDate);
+        if(ad!==null&&ad>180)continue;
+      }
+      keptPos++;
+      let b=rankLookup.get(row.id);
+      if(!b){
+        b={...base,...row,lastUpdate:effLastUpdate,score:row.score??base.score,scoreCount:row.scoreCount??base.scoreCount,observed:scope.observed,readersText:'',channel,primary:[],positions:{},intro:row.intro||base.intro,coverUrl:row.coverUrl||base.coverUrl};
+        rankLookup.set(row.id,b);
+      }
+      b.primary.push(scope.category);b.positions[scope.category]=keptPos;
     }
-    b.primary.push(scope.category);b.positions[scope.category]=row.pos;
   }
   rankBooks=[...rankLookup.values()];facetIndex.clear();
   if(mold>=3){
@@ -559,7 +606,7 @@ function rebuildRank(){
     el('rankRetry').hidden=!rankError;return;
   }
   const expected=channel==='女频'?(rankDay?.date&&rankDay.date<'2026-11-26'?18:Math.max(21,scopes.length)):19;
-  const depthHint=maxPos>30?'前 100 名':'前 30 名';
+  const depthHint=mold===1?'精选':(maxPos>30?'前 100 名':'前 30 名');
   setRankState(rankBusy?'正在读取榜单…':rankError||(scopes.length+' / '+expected+' 大类'+depthHint+' · '+number.format(rankBooks.length)+' 本'));
   el('rankRetry').hidden=!rankError;
 }
@@ -741,7 +788,7 @@ function paintControls(){
   controls('trendState',trendChoices,trendFilter,v=>{trendFilter=v;paintControls();applyFilters()});
   controls('status',statusChoices,status,v=>{status=v;paintControls();applyFilters()});
   const updTotal=catalogReady?books.filter(b=>Number.isFinite(b.lastUpdate)&&b.lastUpdate>946684800).length:(bootData?.stats?.updatedBooks||books.filter(b=>Number.isFinite(b.lastUpdate)&&b.lastUpdate>946684800).length);
-  el('statusScope').textContent='按最新章节发布时间 · 已收录 '+number.format(updTotal)+' 本';
+  el('statusScope').textContent='连载/完结全库已核 · 更新时间已收录 '+number.format(updTotal)+' 本';
   controls('presets',mode==='rank'?[['all','不限'],...heatRanges.slice(1)]:heatRanges,heat,v=>{heat=v;if(v!=='custom'){el('minread').value='';el('maxread').value='';}paintControls();applyFilters();if(v==='custom')el('minread').focus()});
   const hideUnder30=mode==='rank'&&mold===2;
   if(hideUnder30&&words==='under')words='all';
@@ -760,16 +807,21 @@ function filters(){
   const wordBad=words==='custom'&&([lo,hi].some(x=>x!==null&&(!Number.isFinite(x)||x<0))||(lo!==null&&hi!==null&&lo>hi));
   const bad=heatBad||wordBad;
   const raw=submitted;
-  return {lo,hi,min,max,heatBad,wordBad,bad,raw,terms:raw.split(/\s+/).map(norm).filter(Boolean),day:el('day').value,order:el('sort').value};
+  const termPairs=raw.split(/\s+/).map(s=>({raw:rawLower(s),norm:norm(s)})).filter(x=>x.norm);
+  return {lo,hi,min,max,heatBad,wordBad,bad,raw,terms:termPairs,day:el('day').value,order:el('sort').value};
 }
-function match(b,terms,phrase){
-  if(!terms.length)return 0;
+function match(b,termPairs,phrase){
+  if(!termPairs.length)return 0;
   const t=getTexts(b);
   if(t.title===phrase)return 5;
-  if(terms.every(k=>t.title.includes(k)))return 4;
-  if(!terms.every(k=>t.title.includes(k)||t.intro.includes(k)||t.author.includes(k)||t.tags.some(x=>x.includes(k))))return -1;
-  if(terms.some(k=>t.title.includes(k)))return 3;
-  return terms.some(k=>t.intro.includes(k))?2:1;
+  const inTitle=p=>hasPositiveMatch(t.rawTitle,t.title,p.raw,p.norm);
+  const inIntro=p=>hasPositiveMatch(t.rawIntro,t.intro,p.raw,p.norm);
+  const inTags=p=>t.tags.some((nt,i)=>hasPositiveMatch(t.rawTags[i],nt,p.raw,p.norm));
+  const inAuthor=p=>t.author.includes(p.norm);
+  if(termPairs.every(inTitle))return 4;
+  if(!termPairs.every(p=>inTitle(p)||inIntro(p)||inAuthor(p)||inTags(p)))return -1;
+  if(termPairs.some(inTitle))return 3;
+  return termPairs.some(inIntro)?2:1;
 }
 function queryBooks(f){
   if(f.bad)return [];

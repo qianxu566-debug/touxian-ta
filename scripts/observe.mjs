@@ -13,11 +13,14 @@ import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
   MIN_READERS,
+  UNAVAIL_HIDE_DAYS,
+  UNAVAIL_PURGE_DAYS,
   cnDay,
   readGzJson,
   writeGzJson,
   bestCoverExpiryMs,
   applyDetailToBook,
+  checkSdkVisibility,
   fetchJson,
   runPool,
 } from './lib.mjs';
@@ -83,9 +86,9 @@ if (missingUpdate) {
     .sort((a, b) => (extraRankIds.has(String(b.id)) ? 1 : 0) - (extraRankIds.has(String(a.id)) ? 1 : 0) || (b.readers ?? 0) - (a.readers ?? 0))
     .map((b) => String(b.id));
 } else if (coversOnly) {
-  // Only refresh books whose best direct cover expires within 16 hours
+  // Only refresh books whose best direct cover expires within 16 hours (skip quarantined)
   queue = catalog.books
-    .filter((b) => bestCoverExpiryMs(b) - now < COVER_REFRESH_WINDOW_MS)
+    .filter((b) => (b.unavailDays || 0) < UNAVAIL_HIDE_DAYS && bestCoverExpiryMs(b) - now < COVER_REFRESH_WINDOW_MS)
     .map((b) => String(b.id));
 } else {
   const allTargets = [...new Set([...books.keys(), ...extraRankIds])];
@@ -113,6 +116,19 @@ function checkpoint() {
   }
 }
 
+async function markBookUnavailable(id) {
+  const vis = await checkSdkVisibility(id);
+  if (vis === 1) return false;
+  unavailableSet.add(id);
+  const book = books.get(id);
+  if (book && book.unavailLastDate !== today) {
+    book.unavailDays = (Number(book.unavailDays) || 0) + 1;
+    if (!book.unavailSince) book.unavailSince = today;
+    book.unavailLastDate = today;
+  }
+  return true;
+}
+
 await runPool(
   queue,
   concurrency,
@@ -125,8 +141,8 @@ await runPool(
         { timeoutMs: 14000, retries: 1 }
       );
       if (data.code === -1 || String(data.message || '').includes('查无此书')) {
-        unavailableSet.add(id);
-        unavail++;
+        if (await markBookUnavailable(id)) unavail++;
+        else transientErrs++;
         consecutiveErrs = 0;
         done++;
         return;
@@ -150,6 +166,9 @@ await runPool(
       const book = books.get(id);
       if (book) {
         applyDetailToBook(book, d, iso, ts * 1000);
+        delete book.unavailDays;
+        delete book.unavailSince;
+        delete book.unavailLastDate;
       }
 
       ok++;
@@ -165,8 +184,8 @@ await runPool(
       }
     } catch (e) {
       if (e.status === 404) {
-        unavailableSet.add(id);
-        unavail++;
+        if (await markBookUnavailable(id)) unavail++;
+        else transientErrs++;
         consecutiveErrs = 0;
       } else if (e.rateLimited) {
         rateLimited = e.message;
@@ -185,10 +204,19 @@ await runPool(
 
 checkpoint();
 
-// Save updated catalog.gz (keeping >= MIN_READERS, or keeping books whose latest readers >= MIN_READERS)
+// Save updated catalog.gz (keeping >= MIN_READERS, purging unavailable >= UNAVAIL_PURGE_DAYS)
+let purged = 0;
 const updatedBooks = [...books.values()]
-  .filter((b) => Number.isFinite(b.readers) && b.readers >= MIN_READERS)
+  .filter((b) => {
+    if (!Number.isFinite(b.readers) || b.readers < MIN_READERS) return false;
+    if ((b.unavailDays || 0) >= UNAVAIL_PURGE_DAYS) {
+      purged++;
+      return false;
+    }
+    return true;
+  })
   .sort((a, b) => (b.readers ?? -1) - (a.readers ?? -1) || String(a.id).localeCompare(String(b.id)));
+const quarantined = updatedBooks.filter((b) => (b.unavailDays || 0) >= UNAVAIL_HIDE_DAYS).length;
 catalog.books = updatedBooks;
 catalog.updated = new Date().toISOString();
 writeGzJson(catalogPath, catalog);
@@ -205,6 +233,8 @@ console.log(
     done,
     ok,
     unavail,
+    quarantined,
+    purged,
     transientErrs,
     observedTotal,
     targetTotal,

@@ -226,6 +226,7 @@ for day_str in kept_rank_dates:
 # 2. Load daily detail observations from data/days/YYYY-MM-DD.json.gz (up to last 35 days)
 day_files = sorted(Path('data/days').glob('????-??-??.json.gz'))[-35:]
 daily_obs = {}  # date_str -> {id: (readers, words_or_None)}
+daily_unavail = {}  # date_str -> set(id)
 daily_targets = {}
 for f in day_files:
     try:
@@ -235,6 +236,7 @@ for f in day_files:
         continue
     day_str = d.get('date') or f.name[:10]
     rows = d.get('rows') or {}
+    unavail_ids = {str(x) for x in (d.get('unavailable') or []) if x is not None}
     if not rows:
         continue
     parsed = {}
@@ -248,9 +250,24 @@ for f in day_files:
         parsed[str(bid)] = (rc, wn)
     if parsed:
         daily_obs[day_str] = parsed
+        daily_unavail[day_str] = unavail_ids
         daily_targets[day_str] = d.get('targetsCount') or len(d.get('targets') or []) or len(parsed)
 
 all_obs_dates = sorted(daily_obs.keys())
+consec_unavail = {}
+if all_obs_dates:
+    newest_obs_day = all_obs_dates[-1]
+    for bid in daily_unavail.get(newest_obs_day, ()):
+        if bid in daily_obs.get(newest_obs_day, {}):
+            continue
+        streak = 0
+        for d_str in reversed(all_obs_dates):
+            if bid in daily_unavail.get(d_str, ()) and bid not in daily_obs.get(d_str, {}):
+                streak += 1
+            else:
+                break
+        if streak > 0:
+            consec_unavail[bid] = streak
 
 # Choose latestDate: prefer newest day unless it's severely incomplete (<35% of previous day)
 latest_date = None
@@ -264,6 +281,19 @@ if all_obs_dates:
             latest_date = newest
     else:
         latest_date = newest
+
+quarantined_ids = set()
+latest_obs_map = daily_obs.get(latest_date, {}) if latest_date else {}
+for bid in catalog_ids | set(consec_unavail.keys()):
+    if latest_date and bid in latest_obs_map:
+        eff_u = 0
+    else:
+        eff_u = max(
+            consec_unavail.get(bid, 0),
+            int((catalog_map.get(bid) or {}).get('unavailDays') or 0),
+        )
+    if eff_u >= 2:
+        quarantined_ids.add(bid)
 
 series_dates = [d for d in all_obs_dates if not latest_date or d <= latest_date][-30:]
 date_to_idx = {d: i for i, d in enumerate(series_dates)}
@@ -636,6 +666,8 @@ def classify_trend_state(bid):
 
 sweep_books = {}
 for bid, lanes_map in sweep_lanes.items():
+    if bid in quarantined_ids:
+        continue
     f30 = first_any_30.get(bid)
     f100 = first_any_100.get(bid)
     new30 = f30 if (f30 and f30 > top30_base_date) else None
@@ -715,6 +747,8 @@ obs_and_rank_dates = sorted(set(all_obs_dates) | set(all_rank_dates))
 ref_today = latest_rank_date or latest_date or CATALOG_BASE_DATE
 
 for bid in candidate_debut_ids:
+    if bid in quarantined_ids:
+        continue
     cat_b = catalog_map.get(bid)
     meta_b = rank_meta.get(bid)
     if not cat_b and not meta_b:
@@ -726,6 +760,11 @@ for bid in candidate_debut_ids:
     words = (cat_b or {}).get('words') or (meta_b or {}).get('words')
     if isinstance(words, int) and words > 600000:
         continue
+    lpt = (cat_b or {}).get('lastUpdate') or (meta_b or {}).get('lastUpdate')
+    if isinstance(lpt, int) and lpt > 946684800 and ref_today:
+        ref_end = int(time.mktime(date.fromisoformat(ref_today).timetuple())) + 86400
+        if (ref_end - lpt) > 14 * 86400:
+            continue
 
     start_str = (book_dates.get(bid) or {}).get('start')
     if start_str and ref_today:
@@ -834,7 +873,7 @@ for bid in candidate_debut_ids:
     debut_books[bid] = [debut_date, sources, primary_label, day_num, period_gain, daily_avg, best_pos]
 
 extra_books = {}
-for bid in (set(sweep_books.keys()) | set(debut_books.keys()) | set(badges.keys())) - catalog_ids:
+for bid in (set(sweep_books.keys()) | set(debut_books.keys()) | set(badges.keys())) - catalog_ids - quarantined_ids:
     m = rank_meta.get(bid)
     if m and m.get('title'):
         sc_val, sc_cnt = resolve_score(bid, m)
@@ -918,7 +957,7 @@ slim_books = []
 seen_slim = set()
 for b in cat.get('books', []):
     bid = str(b.get('id') or '')
-    if not bid or bid in seen_slim:
+    if not bid or bid in seen_slim or bid in quarantined_ids:
         continue
     seen_slim.add(bid)
     cover_u, _ = best_cover_url(b, now_s)
@@ -1127,6 +1166,7 @@ print(
             'debutBooks': len(debut_books),
             'badgesBooks': len(badges),
             'extraBooks': len(extra_books),
+            'quarantinedCount': len(quarantined_ids),
             'stats': trends_payload['stats'],
             'trendsBytes': (out / 'data' / 'trends.json.gz').stat().st_size,
             'radarBytes': (out / 'data' / 'radar.json.gz').stat().st_size,
