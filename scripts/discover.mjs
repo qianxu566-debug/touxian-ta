@@ -51,7 +51,9 @@ function absorbBook(row) {
   const next = old ? { ...old } : { id };
 
   // Preserve verified official-detail channel & tags
-  const hasDetailChannel = old?.channelEvidence?.kind === 'official-detail';
+  const hasDetailChannel =
+    old?.channelEvidence?.kind === 'official-detail' &&
+    (old.channel === '男频' || old.channel === '女频');
 
   for (const k of ['title', 'author', 'intro', 'status']) {
     if (row[k] != null && row[k] !== '') next[k] = row[k];
@@ -78,11 +80,23 @@ function absorbBook(row) {
     next.tags = [...new Set([...(old?.tags || []), ...row.tags])];
   }
   if (!hasDetailChannel && row.channel) {
-    if (!old?.channel) {
+    if (!old?.channel || old.channel === '共用') {
       next.channel = row.channel;
-    } else if (old.channel !== row.channel && old.channel !== '共用') {
+    } else if (old.channel !== row.channel) {
       next.channel = '共用';
     }
+  }
+  if (row.shelfGender && row.shelfCategory) {
+    const prevList = Array.isArray(old?.officialListings) ? old.officialListings : [];
+    const key = `${row.shelfGender}:${row.shelfCategory}`;
+    const filtered = prevList.filter((x) => `${x.gender}:${x.category}` !== key);
+    filtered.push({
+      gender: String(row.shelfGender),
+      category: String(row.shelfCategory),
+      observed: row.observed || new Date().toISOString(),
+      kind: 'shelf',
+    });
+    next.officialListings = filtered.slice(-8);
   }
   if (Number.isFinite(row.score) && row.score > 0 && row.score <= 10) {
     next.score = row.score;
@@ -500,7 +514,9 @@ async function watermarkCrawl(taxonomy) {
                 words,
                 status: b.creation_status === 0 ? '已完结' : '连载中',
                 primary: [slice.name],
-                channel: slice.exclusive ? slice.channel : '',
+                channel: slice.channel,
+                shelfGender: slice.gender,
+                shelfCategory: slice.cid,
                 coverUrl: b.thumb_url || b.thumb_uri,
                 observed,
               });

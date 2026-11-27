@@ -168,7 +168,14 @@ export function parseCategoryV2(raw) {
   if (genders.size) {
     if (genders.has(0) && !genders.has(1)) channel = '女频';
     else if (genders.has(1) && !genders.has(0)) channel = '男频';
-    else channel = '共用';
+    else {
+      const subGenders = new Set(
+        list.filter((c) => c && c.MainCategory === false).map((c) => c.Gender).filter((g) => g === 0 || g === 1)
+      );
+      if (subGenders.has(0) && !subGenders.has(1)) channel = '女频';
+      else if (subGenders.has(1) && !subGenders.has(0)) channel = '男频';
+      else channel = '共用';
+    }
   }
   return {
     primary,
@@ -208,9 +215,12 @@ export function applyDetailToBook(book, detail, observedIso, now = Date.now()) {
     if (cat.primary.length) book.primary = cat.primary;
     if (cat.tags.length) book.tags = cat.tags;
     if (cat.channel) {
-      book.channel = cat.channel;
+      const isSpecific = cat.channel === '男频' || cat.channel === '女频';
+      if (isSpecific || !book.channel) {
+        book.channel = cat.channel;
+      }
       book.channelEvidence = {
-        kind: 'official-detail',
+        kind: isSpecific ? 'official-detail' : 'official-detail-shared',
         observed: observedIso,
         main: cat.mainEntries,
       };

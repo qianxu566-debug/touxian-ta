@@ -421,6 +421,7 @@ badge_days = {}
 sweep_lanes = {}
 rank_meta = {}
 rank_readers_by_day = {}
+rank_genders = {}
 
 for d_str in all_rank_dates:
     snap = rank_snaps[d_str]
@@ -446,6 +447,8 @@ for d_str in all_rank_dates:
             rc = r.get('readers')
             if isinstance(rc, int) and rc >= 0:
                 rank_readers_by_day[(bid, d_str)] = max(rank_readers_by_day.get((bid, d_str), -1), rc)
+            if gender in ('0', '1'):
+                rank_genders.setdefault(bid, set()).add(gender)
 
             b_grp = badge_days.setdefault(bid, {}).setdefault(mold, {})
             if d_str not in b_grp or pos < b_grp[d_str]:
@@ -542,6 +545,11 @@ for d_str in all_rank_dates:
             rc = r.get('readers')
             if isinstance(rc, int) and rc >= 0:
                 rank_readers_by_day[(bid, d_str)] = max(rank_readers_by_day.get((bid, d_str), -1), rc)
+            r_ch = r.get('ch')
+            if r_ch == '男频':
+                rank_genders.setdefault(bid, set()).add('1')
+            elif r_ch == '女频':
+                rank_genders.setdefault(bid, set()).add('0')
 
             b_grp = badge_days.setdefault(bid, {}).setdefault(mold, {})
             if d_str not in b_grp or pos < b_grp[d_str]:
@@ -859,6 +867,53 @@ radar_payload = {
 )
 
 # 4. Write slimmed frontend catalog.gz & instant boot payload (data/boot.json.gz)
+m_tag_cnt = {}
+f_tag_cnt = {}
+for b in cat.get('books', []):
+    ch0 = b.get('channel') or ''
+    if ch0 == '男频':
+        for t in (b.get('tags') or []):
+            m_tag_cnt[t] = m_tag_cnt.get(t, 0) + 1
+    elif ch0 == '女频':
+        for t in (b.get('tags') or []):
+            f_tag_cnt[t] = f_tag_cnt.get(t, 0) + 1
+
+fem_strong_tags = {
+    t for t, c in f_tag_cnt.items()
+    if c >= 15 and c / (c + m_tag_cnt.get(t, 0)) >= 0.85
+}
+male_strong_tags = {
+    t for t, c in m_tag_cnt.items()
+    if c >= 15 and c / (c + f_tag_cnt.get(t, 0)) >= 0.85
+}
+
+
+def resolve_effective_channel(b, bid):
+    ch0 = b.get('channel') or ''
+    if ch0 in ('男频', '女频'):
+        return ch0
+    gset = set(rank_genders.get(bid, ()))
+    for ol in (b.get('officialListings') or []):
+        if isinstance(ol, dict):
+            g = str(ol.get('gender', ''))
+            if g in ('0', '1'):
+                gset.add(g)
+    if gset == {'0'}:
+        return '女频'
+    if gset == {'1'}:
+        return '男频'
+    if gset == {'0', '1'}:
+        return '共用'
+    ts = set(b.get('tags') or [])
+    fh = bool(ts & fem_strong_tags)
+    mh = bool(ts & male_strong_tags)
+    if fh and not mh:
+        return '女频'
+    if mh and not fh:
+        return '男频'
+    return ch0 or '共用'
+
+
 slim_books = []
 seen_slim = set()
 for b in cat.get('books', []):
@@ -867,6 +922,7 @@ for b in cat.get('books', []):
         continue
     seen_slim.add(bid)
     cover_u, _ = best_cover_url(b, now_s)
+    eff_ch = resolve_effective_channel(b, bid)
     item = {
         'id': bid,
         'title': b.get('title') or '',
@@ -877,7 +933,7 @@ for b in cat.get('books', []):
         'readers': b.get('readers'),
         'tags': b.get('tags') or [],
         'primary': b.get('primary') or [],
-        'channel': b.get('channel') or '',
+        'channel': eff_ch,
         'coverUrl': cover_u,
     }
     if b.get('readersText'):
@@ -888,7 +944,7 @@ for b in cat.get('books', []):
         item['lastUpdate'] = b['lastUpdate']
     if b.get('events'):
         item['events'] = b['events']
-    if b.get('channel') == '共用' and (b.get('channelEvidence') or {}).get('kind') == 'official-detail':
+    if eff_ch == '共用' and (b.get('channelEvidence') or {}).get('kind') == 'official-detail':
         item['sharedOfficial'] = 1
     sc_val, sc_cnt = resolve_score(bid, b)
     if sc_val is not None:
@@ -967,7 +1023,12 @@ for r in cat.get('coverage') or []:
 
 
 def matches_channel(b, ch):
-    return not ch or b.get('channel') == ch or b.get('channel') == '共用'
+    if not ch:
+        return True
+    bch = b.get('channel') or ''
+    if ch == '女频':
+        return bch == '女频'
+    return bch == ch or bch == '共用'
 
 
 def primary_for(b):

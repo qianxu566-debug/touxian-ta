@@ -1,4 +1,4 @@
-import { compressed, dayString } from './reader.js?v=16';
+import { compressed, dayString } from './reader.js?v=17';
 
 const nf = new Intl.NumberFormat('zh-CN');
 
@@ -305,8 +305,8 @@ function buildSparkline(series, dates, rangeDays = 1) {
   const lastDate = dates[maxX]?.slice(5) || '';
   const fmt = (v) => (v >= 10000 ? `${(v / 10000).toFixed(1)}万` : nf.format(v));
   const netUp = vals[vals.length - 1] >= vals[0];
-  const stroke = netUp ? '#88d6a3' : '#eb9a92';
-  const fill = netUp ? 'rgba(136,214,163,0.14)' : 'rgba(235,154,146,0.14)';
+  const stroke = netUp ? 'var(--up)' : 'var(--down)';
+  const fill = netUp ? 'var(--up-tint)' : 'var(--down-tint)';
   const area = `${xy[0][0].toFixed(1)},${h - padY} ${coords.join(' ')} ${xy[xy.length - 1][0].toFixed(1)},${h - padY}`;
   const dots = pts.length <= 10
     ? xy.map(([x, y]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.8" fill="${stroke}"/>`).join('')
@@ -323,8 +323,8 @@ function buildSparkline(series, dates, rangeDays = 1) {
     `<div class="trendChart">` +
     `<div class="chartHead"><span>${headLeft}</span><span>${headRight}</span></div>` +
     `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="在读人数走势折线图">` +
-    `<line x1="0" y1="${padY}" x2="${w}" y2="${padY}" stroke="rgba(195,228,232,0.12)" stroke-dasharray="2 4"/>` +
-    `<line x1="0" y1="${h - padY}" x2="${w}" y2="${h - padY}" stroke="rgba(195,228,232,0.12)" stroke-dasharray="2 4"/>` +
+    `<line x1="0" y1="${padY}" x2="${w}" y2="${padY}" stroke="var(--line-2)" stroke-dasharray="2 4"/>` +
+    `<line x1="0" y1="${h - padY}" x2="${w}" y2="${h - padY}" stroke="var(--line-2)" stroke-dasharray="2 4"/>` +
     `<polygon points="${area}" fill="${fill}"/>` +
     `<polyline points="${coords.join(' ')}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` +
     dots +

@@ -3,23 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f181e">
+<meta name="theme-color" id="themeColorMeta" content="#0f181e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=16">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=16">
+<link rel="icon" href="./assets/otter.svg?v=17">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=17">
 <style>[hidden]{display:none!important}</style>
-<link rel="stylesheet" href="./assets/site.css?v=16">
+<script>try{if(localStorage.getItem('touxian-theme')==='light'){document.documentElement.dataset.theme='light';var m=document.getElementById('themeColorMeta');if(m)m.content='#f9fcfb';}}catch(e){}</script>
+<link rel="stylesheet" href="./assets/site.css?v=17">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=16" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=17" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
+    <button type="button" id="themeBtn" class="themeBtn" aria-pressed="false" aria-label="当前深色模式，点击切换浅色模式" title="切换浅色模式"><svg class="thMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="thSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg><span class="themeLbl" id="themeLbl">深色</span></button>
     <button type="button" id="appDlBtn" class="appDlBtn" hidden aria-haspopup="dialog" aria-controls="appModal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg><span id="appDlLbl">下载 App</span></button>
   </div>
 </header>
@@ -225,7 +227,7 @@
     <div class="wxCard appCard">
       <div id="appModalWxTip" class="wxTipTop" hidden><span>微信内会拦截安装包下载</span><span class="wxArrow">请点右上角 ··· ↗</span></div>
       <div class="appHead">
-        <img src="./assets/otter.svg?v=16" alt="" width="40" height="40">
+        <img src="./assets/otter.svg?v=17" alt="" width="40" height="40">
         <div>
           <h3 id="appModalTitle">偷闲獭 App</h3>
           <div class="appSub"><span class="appVerPill" id="appModalMeta">Android v2.0.1 · 仅 65 KB</span></div>
@@ -245,12 +247,12 @@
   <details class="coverage"><summary>实际收录范围与更新方式</summary><div id="coverage"></div></details>
 </main>
 
-<footer>偷闲獭 · 番茄作品检索 · <a href="https://github.com/qianxu566-debug/touxian-ta/tree/main/scripts">更新程序与许可</a><span id="footAppWrap" hidden> · <button type="button" id="footAppBtn" class="footLinkBtn">下载安卓 App</button></span></footer>
+<footer>偷闲獭 · 番茄作品检索<span id="footAppWrap" hidden> · <button type="button" id="footAppBtn" class="footLinkBtn">下载安卓 App</button></span></footer>
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=16';
-import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=16';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,windowMetric} from './assets/daily.js?v=17';
+import {dayString,ageDays,compressed,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=17';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -374,7 +376,7 @@ function bookChannel(b){
   if(b.channel==='共用')return (b.sharedOfficial||b.channelEvidence?.kind==='official-detail')?'主分类男女频共用':'男女频均收录';
   return b.channel||'';
 }
-const matchesChannel=(b,ch)=>!ch||b.channel===ch||b.channel==='共用';
+const matchesChannel=(b,ch)=>!ch||(ch==='女频'?b.channel==='女频':(b.channel===ch||b.channel==='共用'));
 function primaryFor(b){
   if(b.primary?.length)return b.primary;
   const verified=(b.primary||[]).filter(t=>mainNames.has(t));
@@ -1099,6 +1101,25 @@ if(!isStandaloneApp()){
   el('appDlBtn').onclick=openAppModal;
   el('footAppBtn').onclick=openAppModal;
 }
+function syncThemeUi(){
+  const isLight=document.documentElement.dataset.theme==='light';
+  const btn=el('themeBtn'), lbl=el('themeLbl'), meta=el('themeColorMeta');
+  if(lbl)lbl.textContent=isLight?'浅色':'深色';
+  if(btn){
+    btn.setAttribute('aria-pressed',String(isLight));
+    btn.setAttribute('aria-label',isLight?'当前浅色模式，点击切换深色模式':'当前深色模式，点击切换浅色模式');
+    btn.title=isLight?'切换深色模式':'切换浅色模式';
+  }
+  if(meta)meta.content=isLight?'#f9fcfb':'#0f181e';
+}
+syncThemeUi();
+el('themeBtn').onclick=()=>{
+  const nextLight=document.documentElement.dataset.theme!=='light';
+  if(nextLight)document.documentElement.dataset.theme='light';
+  else delete document.documentElement.dataset.theme;
+  try{localStorage.setItem('touxian-theme',nextLight?'light':'dark');}catch{}
+  syncThemeUi();
+};
 el('count').tabIndex=-1;
 listing.addEventListener('click',e=>{
   const card=e.target.closest('article.book');if(!card)return;
