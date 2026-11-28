@@ -9,16 +9,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=22">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=22">
+<link rel="icon" href="./assets/otter.svg?v=23">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=23">
 <style>[hidden]{display:none!important}</style>
 <script>try{if(localStorage.getItem('touxian-theme')==='light'){document.documentElement.dataset.theme='light';var m=document.getElementById('themeColorMeta');if(m)m.content='#f9fcfb';}}catch(e){}</script>
-<link rel="stylesheet" href="./assets/site.css?v=22">
+<link rel="stylesheet" href="./assets/site.css?v=23">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=22" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=23" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
     <button type="button" id="themeBtn" class="themeBtn" aria-pressed="false" aria-label="当前深色模式，点击切换浅色模式" title="切换浅色模式"><svg class="thMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="thSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg><span class="themeLbl" id="themeLbl">深色</span></button>
@@ -189,16 +189,16 @@
   <div class="results" id="resultsBar">
     <div class="resLeft">
       <button type="button" id="expandSide" class="expandSideBtn">筛选 ›</button>
+      <div class="sortWrap"><span>排序</span><select id="sort" hidden aria-hidden="true"></select><button type="button" id="sortBtn" class="popBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="排序方式"><span class="popVal">书库热度</span><svg class="popChev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button></div>
       <h2 id="count" aria-live="polite"></h2>
       <small id="introScope" hidden></small>
     </div>
     <div class="viewtools">
-      <div class="sortWrap"><span>排序</span><select id="sort" hidden aria-hidden="true"></select><button type="button" id="sortBtn" class="popBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="排序方式"><span class="popVal">书库热度</span><svg class="popChev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button></div>
+      <button type="button" id="quickReset" class="quickReset" hidden>重置筛选</button>
       <div class="viewSeg" role="group" aria-label="视图切换">
         <button type="button" id="cardView" aria-pressed="true">卡片</button>
         <button type="button" id="denseView" aria-pressed="false">紧凑</button>
       </div>
-      <button type="button" id="quickReset" class="quickReset" hidden>重置筛选</button>
     </div>
   </div>
 
@@ -228,7 +228,7 @@
     <div class="wxCard appCard">
       <div id="appModalWxTip" class="wxTipTop" hidden><span>微信内会拦截安装包下载</span><span class="wxArrow">请点右上角 ··· ↗</span></div>
       <div class="appHead">
-        <img src="./assets/otter.svg?v=22" alt="" width="40" height="40">
+        <img src="./assets/otter.svg?v=23" alt="" width="40" height="40">
         <div>
           <h3 id="appModalTitle">偷闲獭 App</h3>
           <div class="appSub"><span class="appVerPill" id="appModalMeta">Android v2.0.1 · 仅 65 KB</span></div>
@@ -254,8 +254,8 @@
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,bindTrendChart,windowMetric} from './assets/daily.js?v=22';
-import {dayString,ageDays,compressed,fetchWithRetry,fetchCached,readCachedData,pruneHistoryCache,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=22';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,bindTrendChart,windowMetric} from './assets/daily.js?v=23';
+import {dayString,ageDays,compressed,fetchWithRetry,fetchCached,readCachedData,pruneHistoryCache,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=23';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -1299,6 +1299,8 @@ function renderPage(opts={}){
   const introSyncing=coreReady&&introChunkTotal>0&&introsLoaded<introChunkTotal&&Boolean(fNow.raw);
   const retryHtml='<button type="button" class="syncRetryBtn" data-retry-sync="1">点击重试</button>';
 
+  const fmtTotal=n=>'共 <b class="cntNum">'+number.format(n)+'</b> 本';
+
   if(mode==='rank'&&rankBusy&&!live){
     el('count').textContent='正在读取当日榜单…';
   }else if(mode==='rank'&&rankError&&!live){
@@ -1307,20 +1309,20 @@ function renderPage(opts={}){
     el('count').textContent='正在同步榜单书目…';
   }else if(!coreReady&&mode==='search'){
     if(hasCoreFail){
-      el('count').innerHTML='当前仅显示 '+number.format(books.length)+' 本热门书目<span class="syncBadge warn">全库同步超时</span>'+retryHtml;
+      el('count').innerHTML='仅显 <b class="cntNum">'+number.format(books.length)+'</b> 本<span class="syncBadge warn">同步超时</span>'+retryHtml;
     }else if(isDefaultUnfilteredSearch()){
-      el('count').innerHTML='找到 '+number.format(bootData?.stats?.totalBooks||results.length)+' 本作品<span class="syncBadge">热门先显 · 全库同步中</span>';
+      el('count').innerHTML=fmtTotal(bootData?.stats?.totalBooks||results.length)+'<span class="syncBadge">热门先显 · 同步中</span>';
     }else{
-      el('count').innerHTML='已匹配 '+number.format(results.length)+' 本<span class="syncBadge">全库检索中</span>';
+      el('count').innerHTML=fmtTotal(results.length)+'<span class="syncBadge">全库检索中</span>';
     }
   }else if(hasModeFail){
-    el('count').innerHTML='找到 '+number.format(results.length)+' 本作品<span class="syncBadge warn">部分数据同步超时</span>'+retryHtml;
+    el('count').innerHTML=fmtTotal(results.length)+'<span class="syncBadge warn">部分同步超时</span>'+retryHtml;
   }else if(hasIntroFail&&fNow.raw){
-    el('count').innerHTML='找到 '+number.format(results.length)+' 本作品<span class="syncBadge warn">部分简介同步超时</span>'+retryHtml;
+    el('count').innerHTML=fmtTotal(results.length)+'<span class="syncBadge warn">部分简介超时</span>'+retryHtml;
   }else if(introSyncing){
-    el('count').innerHTML='找到 '+number.format(results.length)+' 本作品<span class="syncBadge">简介补齐中 ('+introsLoaded+'/'+introChunkTotal+')</span>';
+    el('count').innerHTML=fmtTotal(results.length)+'<span class="syncBadge">简介补齐中 ('+introsLoaded+'/'+introChunkTotal+')</span>';
   }else{
-    el('count').textContent='找到 '+number.format(results.length)+' 本作品';
+    el('count').innerHTML=fmtTotal(results.length);
   }
   if(mode==='rank'&&!isSimpleRank()&&!rankBusy&&!rankError&&rankStateBase){
     el('rankState').textContent=(coreReady&&results.length!==rankBooks.length)?(rankStateBase+' · 筛选后 '+number.format(results.length)+' 本'):rankStateBase;
@@ -1654,7 +1656,7 @@ function openPop(kind,btn,alignRight=false){
   btn.setAttribute('aria-expanded','true');
   renderPop();
 }
-el('sortBtn').onclick=()=>openPop('sort',el('sortBtn'),true);
+el('sortBtn').onclick=()=>openPop('sort',el('sortBtn'),false);
 el('rankDateBtn').onclick=()=>{popRankYear=0;openPop('rankDate',el('rankDateBtn'),false);};
 el('dayBtn').onclick=()=>{popCalYM=null;openPop('day',el('dayBtn'),false);};
 
