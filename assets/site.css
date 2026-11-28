@@ -492,6 +492,25 @@ body.sideCollapsed .filters { display: none; }
   color: var(--ink-3);
   margin-left: auto;
 }
+.modeFoot {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.modeFoot .modeNote { margin-left: 0; }
+.modeResetBtn {
+  display: none;
+  flex: none;
+  height: 24px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--amber-tint);
+  color: var(--amber);
+  font-size: 11.5px;
+  font-weight: 600;
+}
 
 /* Left Sticky Sidebar & Filter Pills */
 .filters {
@@ -2183,6 +2202,12 @@ footer a { color: var(--ink-3); }
     flex: 0 1 auto;
   }
   .modeNote { margin-left: 0; font-size: 11.5px; }
+  .modeFoot {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+  .modeResetBtn { display: inline-flex; align-items: center; }
 
   /* 3-Segment Mobile Quick Filter Bar */
   .quick {
@@ -2233,15 +2258,22 @@ footer a { color: var(--ink-3); }
   .quick #brief { display: none; }
 
   /* Results Toolbar on Mobile */
-  .results { margin: 6px 0 8px; padding: 2px 0; gap: 6px 8px; }
-  .resLeft { gap: 8px; }
-  .results h2 { font-size: 12px; }
+  .results { margin: 6px 0 8px; padding: 2px 0; gap: 6px; flex-wrap: nowrap; }
+  .results.hasSyncAlert { flex-wrap: wrap; }
+  .resLeft { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; gap: 6px; }
+  .results.hasSyncAlert .resLeft { flex-wrap: wrap; }
+  .sortWrap { flex: 0 1 auto; min-width: 0; gap: 4px; font-size: 11.5px; }
+  .sortWrap > span { flex: none; }
+  .results h2 { font-size: 12px; flex: 0 0 auto; white-space: nowrap; }
+  .results.hasSyncAlert h2 { white-space: normal; }
   #introScope { display: none; }
   .expandSideBtn { display: none !important; }
+  .viewtools { flex: none; flex-wrap: nowrap; gap: 6px; }
+  body:not(.rankMode) #quickReset { display: none !important; }
   #sortBtn, .viewSeg, .quickReset { height: 30px; }
-  #sortBtn { padding: 0 8px; font-size: 12px; }
+  #sortBtn { max-width: 100%; padding: 0 7px; gap: 4px; font-size: 12px; }
   #rankDateBtn { max-width: 174px; }
-  .viewSeg button { height: 24px; padding: 0 9px; font-size: 12px; }
+  .viewSeg button { height: 24px; padding: 0 8px; font-size: 12px; }
   .activeBar { margin-bottom: 10px; padding: 6px 10px; }
 
   /* Mobile Card List & 2-Line Compact List */

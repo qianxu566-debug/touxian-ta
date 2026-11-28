@@ -9,16 +9,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=23">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=23">
+<link rel="icon" href="./assets/otter.svg?v=24">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=24">
 <style>[hidden]{display:none!important}</style>
 <script>try{if(localStorage.getItem('touxian-theme')==='light'){document.documentElement.dataset.theme='light';var m=document.getElementById('themeColorMeta');if(m)m.content='#f9fcfb';}}catch(e){}</script>
-<link rel="stylesheet" href="./assets/site.css?v=23">
+<link rel="stylesheet" href="./assets/site.css?v=24">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=23" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=24" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
     <button type="button" id="themeBtn" class="themeBtn" aria-pressed="false" aria-label="当前深色模式，点击切换浅色模式" title="切换浅色模式"><svg class="thMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="thSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg><span class="themeLbl" id="themeLbl">深色</span></button>
@@ -169,14 +169,14 @@
     <div class="modeGroup"><strong>范围</strong><div class="segOpts" id="sweepScope"></div></div>
     <div class="modeGroup"><strong>深度</strong><div class="segOpts" id="sweepDepth"></div></div>
     <div class="modeGroup"><strong>榜单</strong><div class="segOpts" id="sweepKind"></div></div>
-    <span class="modeNote" id="sweepState" role="status"></span>
+    <div class="modeFoot"><span class="modeNote" id="sweepState" role="status"></span><button type="button" id="sweepReset" class="modeResetBtn" hidden>重置</button></div>
   </div>
 
   <div id="debutFields" class="modeBar" hidden>
     <div class="modeGroup"><strong>首秀窗</strong><div class="segOpts" id="debutWin"></div></div>
     <div class="modeGroup"><strong>首秀源</strong><div class="segOpts" id="debutKind"></div></div>
     <div class="modeGroup"><strong>指定日</strong><select id="day" hidden aria-hidden="true"></select><button type="button" id="dayBtn" class="popBtn" aria-haspopup="dialog" aria-expanded="false" aria-label="指定首秀日期"><span class="popVal">全部首秀日</span><svg class="popChev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button></div>
-    <span class="modeNote" id="debutState" role="status"></span>
+    <div class="modeFoot"><span class="modeNote" id="debutState" role="status"></span><button type="button" id="debutReset" class="modeResetBtn" hidden>重置</button></div>
   </div>
 
   <div class="quick">
@@ -228,7 +228,7 @@
     <div class="wxCard appCard">
       <div id="appModalWxTip" class="wxTipTop" hidden><span>微信内会拦截安装包下载</span><span class="wxArrow">请点右上角 ··· ↗</span></div>
       <div class="appHead">
-        <img src="./assets/otter.svg?v=23" alt="" width="40" height="40">
+        <img src="./assets/otter.svg?v=24" alt="" width="40" height="40">
         <div>
           <h3 id="appModalTitle">偷闲獭 App</h3>
           <div class="appSub"><span class="appVerPill" id="appModalMeta">Android v2.0.1 · 仅 65 KB</span></div>
@@ -254,8 +254,8 @@
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,bindTrendChart,windowMetric} from './assets/daily.js?v=23';
-import {dayString,ageDays,compressed,fetchWithRetry,fetchCached,readCachedData,pruneHistoryCache,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=23';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,bindTrendChart,windowMetric} from './assets/daily.js?v=24';
+import {dayString,ageDays,compressed,fetchWithRetry,fetchCached,readCachedData,pruneHistoryCache,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=24';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -920,13 +920,16 @@ function showSelection(f){
   if(trendFilter&&mode!=='rank')chip('走势 '+trendStateLabel(trendFilter),()=>{trendFilter=''});
   if(f.raw)chip('关键词 '+f.raw,()=>{el('q').value='';submitted=''});
   if(mode==='debut'&&f.day)chip('首秀 '+f.day,()=>{el('day').value='';rebuildDebut()});
-  const hasModeSubFilter=(mode==='sweep'&&(sweepWin!==7||sweepScope!=='all'||sweepDepth!==100||sweepKind!=='all'))
-    ||(mode==='debut'&&(debutWin!==7||debutKind!=='all'));
+  const hasSweepSub=mode==='sweep'&&(sweepWin!==7||sweepScope!=='all'||sweepDepth!==100||sweepKind!=='all');
+  const hasDebutSub=mode==='debut'&&(debutWin!==7||debutKind!=='all'||Boolean(f.day));
+  const hasModeSubFilter=hasSweepSub||hasDebutSub;
   const chipCount=node.children.length;
   const canReset=Boolean(chipCount)||hasModeSubFilter||heat!=='all'||words!=='all';
   el('activeBar').hidden=!chipCount;
   el('reset').disabled=!canReset;
   el('quickReset').hidden=!canReset;
+  el('sweepReset').hidden=!hasSweepSub;
+  el('debutReset').hidden=!hasDebutSub;
   el('sheetReset').disabled=!canReset;
   const badgeVal=chipCount+(heat!=='all'&&!chipCount?1:0)+(words!=='all'&&!chipCount?1:0);
   el('quickBadge').hidden=!badgeVal;
@@ -1298,6 +1301,8 @@ function renderPage(opts={}){
   const hasIntroFail=[...failedTasks].some(k=>k.startsWith('intro:'));
   const introSyncing=coreReady&&introChunkTotal>0&&introsLoaded<introChunkTotal&&Boolean(fNow.raw);
   const retryHtml='<button type="button" class="syncRetryBtn" data-retry-sync="1">点击重试</button>';
+  const hasSyncUi=(!coreReady&&mode==='search')||hasModeFail||(hasIntroFail&&Boolean(fNow.raw))||introSyncing;
+  el('resultsBar').classList.toggle('hasSyncAlert',hasSyncUi);
 
   const fmtTotal=n=>'共 <b class="cntNum">'+number.format(n)+'</b> 本';
 
@@ -1501,6 +1506,8 @@ el('tagSearch').oninput=renderTags;
 el('clearTags').onclick=()=>{selectedTags.clear();renderTags();applyFilters()};
 el('reset').onclick=()=>resetFilters('all');
 el('quickReset').onclick=()=>resetFilters('all');
+el('sweepReset').onclick=()=>resetFilters('all');
+el('debutReset').onclick=()=>resetFilters('all');
 el('sheetReset').onclick=()=>resetFilters('all');
 el('helpBtn').onclick=()=>{const open=el('modeHelp').hidden;el('modeHelp').hidden=!open;el('helpBtn').setAttribute('aria-expanded',String(open));};
 el('day').onchange=()=>{rebuildDebut();paintControls();renderTags();applyFilters()};

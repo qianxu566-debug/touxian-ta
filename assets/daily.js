@@ -1,4 +1,4 @@
-import { compressed, fetchCached, dayString } from './reader.js?v=23';
+import { compressed, fetchCached, dayString } from './reader.js?v=24';
 
 const nf = new Intl.NumberFormat('zh-CN');
 
