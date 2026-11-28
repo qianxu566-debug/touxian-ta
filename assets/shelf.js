@@ -1,4 +1,4 @@
-import { isAndroidAppShell } from './reader.js?v=26';
+import { isAndroidAppShell } from './reader.js?v=27';
 
 const SHELF_KEY = 'touxian-shelf-v1';
 const NATIVE_MIGRATED_KEY = 'touxian-shelf-native-migrated-v1';

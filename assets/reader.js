@@ -11,22 +11,55 @@ async function decodeBuf(buf,gz){
   if(gz)return new Response(new Response(buf).body.pipeThrough(new DecompressionStream('gzip'))).json();
   return JSON.parse(new TextDecoder().decode(buf));
 }
-export async function fetchWithRetry(path,{gz=true,timeoutMs=14000,retries=2,ver='',noCache=false}={}){
+export async function fetchWithRetry(path,{gz=true,timeoutMs=15000,stallMs=0,maxTotalMs=90000,retries=2,ver='',noCache=false}={}){
   const url=ver?path+(path.includes('?')?'&':'?')+'v='+encodeURIComponent(ver):path;
+  const effStallMs=stallMs>0?stallMs:Math.max(timeoutMs,15000);
+  const effMaxTotalMs=Math.max(maxTotalMs||90000,timeoutMs+effStallMs);
   for(let attempt=0;attempt<=retries;attempt++){
     const ctrl=new AbortController();
-    const timer=setTimeout(()=>ctrl.abort(Error('TIMEOUT')),timeoutMs);
+    let headTimer=setTimeout(()=>ctrl.abort(Error('TIMEOUT')),timeoutMs);
+    let stallTimer=0;
+    const totalTimer=setTimeout(()=>ctrl.abort(Error('TIMEOUT_TOTAL')),effMaxTotalMs);
+    const armStall=()=>{
+      if(stallTimer)clearTimeout(stallTimer);
+      stallTimer=setTimeout(()=>ctrl.abort(Error('TIMEOUT_STALL')),effStallMs);
+    };
     try{
       const r=await fetch(url,{cache:(noCache||!ver)?'no-cache':'default',signal:ctrl.signal});
+      clearTimeout(headTimer);headTimer=0;
       if(!r.ok){const e=Error('HTTP '+r.status);e.status=r.status;throw e;}
-      const buf=await r.arrayBuffer();
+      let buf;
+      if(r.body&&typeof r.body.getReader==='function'){
+        const reader=r.body.getReader();
+        const chunks=[];
+        let totalLen=0;
+        armStall();
+        while(true){
+          const {done,value}=await reader.read();
+          if(done)break;
+          if(value&&value.byteLength){
+            armStall();
+            chunks.push(value);
+            totalLen+=value.byteLength;
+          }
+        }
+        const merged=new Uint8Array(totalLen);
+        let offset=0;
+        for(const c of chunks){merged.set(c,offset);offset+=c.byteLength;}
+        buf=merged.buffer;
+      }else{
+        armStall();
+        buf=await r.arrayBuffer();
+      }
       const data=await decodeBuf(buf,gz);
       return {data,buf};
     }catch(err){
       if(attempt>=retries||err?.status===404)throw err;
       await new Promise(res=>setTimeout(res,(attempt+1)*900));
     }finally{
-      clearTimeout(timer);
+      if(headTimer)clearTimeout(headTimer);
+      if(stallTimer)clearTimeout(stallTimer);
+      clearTimeout(totalTimer);
     }
   }
 }
@@ -68,12 +101,12 @@ export async function pruneHistoryCache(maxKeep=6){
     await Promise.all(dated.slice(maxKeep).map(x=>cache.delete(x.req)));
   }catch{}
 }
-export async function fetchCached(path,{gz=true,timeoutMs=14000,retries=2,ver='',forceNetwork=false,noCache=false}={}){
+export async function fetchCached(path,{gz=true,timeoutMs=15000,stallMs=0,maxTotalMs=90000,retries=2,ver='',forceNetwork=false,noCache=false}={}){
   if(!forceNetwork&&ver){
     const hit=await readCachedData(path,{gz});
     if(hit&&hit.ver===ver)return {data:hit.data,fromCache:true,ver};
   }
-  const {data,buf}=await fetchWithRetry(path,{gz,timeoutMs,retries,ver,noCache});
+  const {data,buf}=await fetchWithRetry(path,{gz,timeoutMs,stallMs,maxTotalMs,retries,ver,noCache});
   await writeCachedData(path,buf,ver);
   return {data,fromCache:false,ver};
 }

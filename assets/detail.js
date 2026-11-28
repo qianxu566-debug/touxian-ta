@@ -1,5 +1,5 @@
-import { fetchCached, mobilePlatform, appLink, ageDays, dayString } from './reader.js?v=26';
-import { getTrend, shortDelta, deltaClass, formatPct, dayLabel, renderRankBadges, renderTrendPanel, windowMetric } from './daily.js?v=26';
+import { fetchCached, mobilePlatform, appLink, ageDays, dayString } from './reader.js?v=27';
+import { getTrend, shortDelta, deltaClass, formatPct, dayLabel, renderRankBadges, renderTrendPanel, windowMetric } from './daily.js?v=27';
 
 const nf = new Intl.NumberFormat('zh-CN');
 const wanNf = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 1 });
@@ -30,7 +30,9 @@ export async function loadBookShard(id, ver = '', opts = {}) {
   const path = `./data/books/b${bucket}.json.gz`;
   const res = await fetchCached(path, {
     gz: true,
-    timeoutMs: opts.timeoutMs ?? 12000,
+    timeoutMs: opts.timeoutMs ?? 15000,
+    stallMs: opts.stallMs ?? 15000,
+    maxTotalMs: opts.maxTotalMs ?? 40000,
     retries: opts.retries ?? 2,
     ver,
     forceNetwork: Boolean(opts.forceNetwork),
@@ -286,14 +288,25 @@ export function renderDetailMarkup(ctx) {
     ? renderTrendPanel(trendDataObj, book.id, 7)
     : '<div class="trendEmpty">暂无足够历史在读序列，次日采集后将自动生成折线。</div>';
 
-  const sameAuthor = coreReady ? findSameSignatureBooks(book, pool, 8) : [];
-  const simResult = coreReady ? findSimilarBooks(book, pool, { relaxed: similarRelaxed, limit: 10 }) : { strict: [], relaxedList: [], canRelax: false, primaryName: primList[0] || '' };
+  const hasPool = Array.isArray(pool) && pool.length > 0;
+  const sameAuthor = (coreReady || (!coreFailed && hasPool))
+    ? findSameSignatureBooks(book, pool, coreReady ? 8 : 6)
+    : [];
+  const simResult = (coreReady || (!coreFailed && hasPool))
+    ? findSimilarBooks(book, pool, { relaxed: similarRelaxed, limit: coreReady ? 10 : 6 })
+    : { strict: [], relaxedList: [], canRelax: false, primaryName: primList[0] || '' };
 
   let similarBodyHtml = '';
   if (!coreReady) {
-    similarBodyHtml = coreFailed
-      ? '<div class="dRelHint">全库索引加载超时，暂时无法匹配相近作品。<button type="button" class="syncRetryBtn" data-retry-sync="1">重试全库</button></div>'
-      : '<div class="dRelHint">正在按需同步全库，稍候将展示带匹配理由的相近作品…</div>';
+    if (coreFailed) {
+      similarBodyHtml = '<div class="dRelHint">全库索引加载超时，暂时无法匹配相近作品。<button type="button" class="syncRetryBtn" data-retry-sync="1">重试全库</button></div>';
+    } else if (simResult.strict.length > 0) {
+      similarBodyHtml = `<div class="dRelHint dRelSyncing">全库索引同步中，先展示热门库初步匹配（完成后自动补齐全库 2.6 万本）…</div><div class="dRelList">${simResult.strict.map((e) => renderMiniBookItem(e)).join('')}</div>`;
+    } else if (simResult.relaxedList.length > 0) {
+      similarBodyHtml = `<div class="dRelHint dRelSyncing">全库索引同步中，先展示热门库同分类初步匹配（完成后自动补齐全库 2.6 万本）…</div><div class="dRelList">${simResult.relaxedList.map((e) => renderMiniBookItem(e)).join('')}</div>`;
+    } else {
+      similarBodyHtml = '<div class="dRelHint">正在同步全库索引（首次同步完成后将自动缓存至本机，秒开推荐）…</div>';
+    }
   } else {
     const strictCards = simResult.strict.map((e) => renderMiniBookItem(e)).join('');
     const showRelaxNow = similarRelaxed || simResult.strict.length === 0;
@@ -314,9 +327,13 @@ export function renderDetailMarkup(ctx) {
   if (!book.author || book.author === '佚名') {
     authorBodyHtml = '<div class="dRelHint">该作品暂无署名信息。</div>';
   } else if (!coreReady) {
-    authorBodyHtml = coreFailed
-      ? `<div class="dRelHint">全库加载失败，暂未查询「${esc(book.author)}」其他作品。<button type="button" class="syncRetryBtn" data-retry-sync="1">重试全库</button></div>`
-      : '<div class="dRelHint">正在匹配同署名收录作品…</div>';
+    if (coreFailed) {
+      authorBodyHtml = `<div class="dRelHint">全库加载失败，暂未查询「${esc(book.author)}」其他作品。<button type="button" class="syncRetryBtn" data-retry-sync="1">重试全库</button></div>`;
+    } else if (sameAuthor.length > 0) {
+      authorBodyHtml = `<div class="dRelHint dRelSyncing">全库同步中，先展示热门库已发现同署名作品…</div><div class="dRelList">${sameAuthor.map((b) => renderMiniBookItem({ book: b }, { showReason: false })).join('')}</div>`;
+    } else {
+      authorBodyHtml = `<div class="dRelHint">正在同步全库以查询「${esc(book.author)}」同署名作品…</div>`;
+    }
   } else if (!sameAuthor.length) {
     authorBodyHtml = `<div class="dRelHint">当前库（≥8,000 在读）暂未收录「${esc(book.author)}」的其他作品。</div>`;
   } else {

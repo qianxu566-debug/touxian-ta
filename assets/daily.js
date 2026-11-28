@@ -1,4 +1,4 @@
-import { compressed, fetchCached, dayString } from './reader.js?v=26';
+import { compressed, fetchCached, dayString } from './reader.js?v=27';
 
 const nf = new Intl.NumberFormat('zh-CN');
 
@@ -12,7 +12,9 @@ export function loadTrends(opts = {}) {
   };
   const p = fetchCached('./data/trends.json.gz', {
     gz: true,
-    timeoutMs: opts.timeoutMs ?? 15000,
+    timeoutMs: opts.timeoutMs ?? 20000,
+    stallMs: opts.stallMs ?? 18000,
+    maxTotalMs: opts.maxTotalMs ?? 60000,
     retries: opts.retries ?? 2,
     ver: opts.ver || '',
     forceNetwork: Boolean(opts.forceNetwork),
@@ -35,7 +37,9 @@ export function loadRadar(opts = {}) {
   };
   const p = fetchCached('./data/radar.json.gz', {
     gz: true,
-    timeoutMs: opts.timeoutMs ?? 15000,
+    timeoutMs: opts.timeoutMs ?? 20000,
+    stallMs: opts.stallMs ?? 18000,
+    maxTotalMs: opts.maxTotalMs ?? 60000,
     retries: opts.retries ?? 2,
     ver: opts.ver || '',
     forceNetwork: Boolean(opts.forceNetwork),

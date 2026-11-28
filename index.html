@@ -9,16 +9,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=26">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=26">
+<link rel="icon" href="./assets/otter.svg?v=27">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=27">
 <style>[hidden]{display:none!important}</style>
 <script>try{if(localStorage.getItem('touxian-theme')==='light'){document.documentElement.dataset.theme='light';var m=document.getElementById('themeColorMeta');if(m)m.content='#f9fcfb';}}catch(e){}</script>
-<link rel="stylesheet" href="./assets/site.css?v=26">
+<link rel="stylesheet" href="./assets/site.css?v=27">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=26" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=27" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
     <button type="button" id="themeBtn" class="themeBtn" aria-pressed="false" aria-label="当前深色模式，点击切换浅色模式" title="切换浅色模式"><svg class="thMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="thSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg><span class="themeLbl" id="themeLbl">深色</span></button>
@@ -228,10 +228,10 @@
     <div class="wxCard appCard">
       <div id="appModalWxTip" class="wxTipTop" hidden><span>微信内会拦截安装包下载</span><span class="wxArrow">请点右上角 ··· ↗</span></div>
       <div class="appHead">
-        <img src="./assets/otter.svg?v=26" alt="" width="40" height="40">
+        <img src="./assets/otter.svg?v=27" alt="" width="40" height="40">
         <div>
           <h3 id="appModalTitle">偷闲獭 App</h3>
-          <div class="appSub"><span class="appVerPill" id="appModalMeta">Android v2.1.0 · 仅 69 KB</span></div>
+          <div class="appSub"><span class="appVerPill" id="appModalMeta">Android v2.1.1 · 仅 69 KB</span></div>
         </div>
       </div>
       <ul class="appPerks">
@@ -258,10 +258,10 @@
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,bindTrendChart,windowMetric} from './assets/daily.js?v=26';
-import {dayString,ageDays,compressed,fetchWithRetry,fetchCached,readCachedData,pruneHistoryCache,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=26';
-import {loadShelf,hasBook,listShelfItems,shelfCount,saveBookToShelf,removeBookFromShelf,toggleShelfBook,refreshShelfSnapshots,shouldShowOldAppTip,hasNativeShelfBridge,consumeShelfMigrationNotice} from './assets/shelf.js?v=26';
-import {loadBookShard,resolveReadAction,renderDetailMarkup} from './assets/detail.js?v=26';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,bindTrendChart,windowMetric} from './assets/daily.js?v=27';
+import {dayString,ageDays,compressed,fetchWithRetry,fetchCached,readCachedData,pruneHistoryCache,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=27';
+import {loadShelf,hasBook,listShelfItems,shelfCount,saveBookToShelf,removeBookFromShelf,toggleShelfBook,refreshShelfSnapshots,shouldShowOldAppTip,hasNativeShelfBridge,getNativeAppVersion,consumeShelfMigrationNotice} from './assets/shelf.js?v=27';
+import {loadBookShard,resolveReadAction,renderDetailMarkup} from './assets/detail.js?v=27';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -314,7 +314,7 @@ const introStore=new Map(), cachedVers={core:'',trends:'',radar:'',dates:'',hot:
 let coreReady=false, trendsReady=false, radarReady=false, datesReady=false, hotReady=false;
 let introChunkTotal=0, introsLoaded=0, activeDataVer='', syncingCount=0, introLoadStartedVer='';
 let initialBootPromise=null, warmIntroPromise=Promise.resolve();
-let activeBookId='', detailStack=[], listReturnState=null, detailIntroExpanded=false, detailSimilarRelaxed=false, detailToastMsg='', detailTrendRange=7, detailRenderTimer=0;
+let activeBookId='', detailStack=[], listReturnState=null, detailIntroExpanded=false, detailSimilarRelaxed=false, detailToastMsg='', detailTrendRange=7, detailRenderTimer=0, lastAutoCoreRetryMs=0;
 const shardByBook=new Map(), shardMeta={loadingId:'',failedId:'',errorMsg:'',dates:[],latestDate:''};
 
 function refreshCategoryIndex(){
@@ -358,9 +358,9 @@ let initialShardPromise=null;
 if(isColdDetailStart){
   document.body.classList.add('detailMode');
   el('bookDetailView').hidden=false;
-  initialShardPromise=loadBookShard(initialBookParam,'',{timeoutMs:12000,retries:2}).catch(e=>({_err:e}));
+  initialShardPromise=loadBookShard(initialBookParam,'',{timeoutMs:15000,stallMs:15000,maxTotalMs:40000,retries:2}).catch(e=>({_err:e}));
 }
-initialBootPromise=fetchWithRetry('./data/boot.json.gz',{gz:true,timeoutMs:9000,retries:2,noCache:true}).then(r=>r.data).catch(()=>null);
+initialBootPromise=fetchWithRetry('./data/boot.json.gz',{gz:true,timeoutMs:15000,stallMs:12000,maxTotalMs:35000,retries:2,noCache:true}).then(r=>r.data).catch(()=>null);
 const warmCacheRows=await Promise.all([
   readCachedData('./data/catalog-core.json.gz',{gz:true}),
   readCachedData('./data/trends.json.gz',{gz:true}),
@@ -1223,7 +1223,7 @@ el('wxCopyBtn').onclick=()=>{
 };
 el('wxCloseBtn').onclick=()=>{el('wxGuide').hidden=true;};
 el('wxGuide').onclick=e=>{if(e.target===el('wxGuide'))el('wxGuide').hidden=true;};
-const APK_URL='./assets/touxianta-v2.1.0.apk', APK_NAME='偷闲獭-v2.1.0.apk', APK_VER='v2.1.0', APK_SIZE_KB='69 KB', SITE_SHORT_URL='https://touxianta.pages.dev/';
+const APK_URL='./assets/touxianta-v2.1.1.apk', APK_NAME='偷闲獭-v2.1.1.apk', APK_VER='v2.1.1', APK_SIZE_KB='69 KB', SITE_SHORT_URL='https://touxianta.pages.dev/';
 function openAppModal(){
   const wx=isWeChat(), plat=mobilePlatform();
   el('appModalWxTip').hidden=!wx;
@@ -1457,14 +1457,22 @@ function renderShelfView(){
   const items=listShelfItems();
   const cnt=items.length;
   const useNative=hasNativeShelfBridge();
+  const host=location.hostname.toLowerCase();
+  const routeTag=host.includes('pages.dev')?'主线 CF':host.includes('github.io')?'备线 GH':'本地';
+  const appVer=useNative?(getNativeAppVersion()||'2.1.1'):'';
   el('subtitle').textContent=useNative
     ?(cnt?('已收藏 '+cnt+' 本作品 · 已启用 App 本机共享书篓（主/备双线路互通）'):'在列表或详情页点击 ☆ 即可一键收入书篓（主/备双线路共用）')
     :(cnt?('已收藏 '+cnt+' 本作品 · 当前保存在本机（不依赖云端）'):'在列表或详情页点击 ☆ 即可一键收入书篓（默认「想看」）');
+  const statusBarHtml=useNative
+    ?'<div class="shelfStatusBar native"><span class="shelfStatusDot" aria-hidden="true"></span><b>已启用 App 共享书篓</b><span class="shelfStatusMeta">v'+esc(appVer)+' · '+esc(routeTag)+' · 主/备双线路互通 · 共 '+cnt+' 本</span></div>'
+    :(!shouldShowOldAppTip()
+      ?'<div class="shelfStatusBar"><span class="shelfStatusMeta">本机浏览器书篓 · 共 '+cnt+' 本（仅保存在当前浏览器）</span></div>'
+      :'');
   const tipHtml=shouldShowOldAppTip()
-    ?'<div class="shelfNotice"><div><b>升级提示（v2.1.0 已发布）：</b>检测到当前为旧版安卓壳。常规浏览与收藏已正常保存在本地；升级到新版 App 后，主/备双线路将共用同一份本机书篓并自动无损保留现有收藏。</div><div class="shelfNoticeOps"><button type="button" class="shelfNoticeBtn" id="oldAppCopyUrlBtn">复制官网短链去浏览器升级</button><span id="oldAppCopyState"></span></div></div>'
+    ?'<div class="shelfNotice"><div><b>升级提示（v2.1.1 已发布）：</b>检测到当前为旧版安卓壳。常规浏览与收藏已正常保存在本地；升级到新版 App 后，主/备双线路将共用同一份本机书篓并自动无损保留现有收藏。</div><div class="shelfNoticeOps"><button type="button" class="shelfNoticeBtn" id="oldAppCopyUrlBtn">复制官网短链去浏览器升级</button><span id="oldAppCopyState"></span></div></div>'
     :'';
   if(!cnt){
-    root.innerHTML=tipHtml+'<div class="shelfEmpty"><div class="shelfEmptyTitle">书篓还是空的</div><p>在任意书籍名片或作品详情页点击 <strong>☆ 加入书篓</strong>，下次打开或从底栏进入都能直接找到。</p><button type="button" class="dPrimaryBtn" id="shelfExploreBtn">去搜作品淘书</button></div>';
+    root.innerHTML=statusBarHtml+tipHtml+'<div class="shelfEmpty"><div class="shelfEmptyTitle">书篓还是空的</div><p>在任意书籍名片或作品详情页点击 <strong>☆ 加入书篓</strong>，下次打开或从底栏进入都能直接找到。</p><button type="button" class="dPrimaryBtn" id="shelfExploreBtn">去搜作品淘书</button></div>';
     return;
   }
   const cards=items.map(it=>{
@@ -1495,7 +1503,7 @@ function renderShelfView(){
       +'<button type="button" class="shelfRemoveBtn" data-shelf-remove="'+esc(it.id)+'">移出</button>'
       +'</div></div></article>';
   }).join('');
-  root.innerHTML=tipHtml+'<div class="shelfGrid">'+cards+'</div>';
+  root.innerHTML=statusBarHtml+tipHtml+'<div class="shelfGrid">'+cards+'</div>';
 }
 function changeMode(next,opts={}){
   closePop();
@@ -1559,6 +1567,11 @@ function changeMode(next,opts={}){
   if(mode==='debut'){initDebutDays();rebuildDebut();}
   if(!opts.skipUrl){
     try{const u=new URL(location.href);u.searchParams.delete('book');if(mode==='search')u.searchParams.delete('view');else u.searchParams.set('view',mode);history.replaceState(null,'',u.pathname+u.search);}catch{}
+  }
+  if((next==='sweep'||next==='debut')&&!radarReady&&!activeTaskPromises.has('radar')){
+    syncDatasets(activeDataVer,{priorityMode:'radar'});
+  }else if(next==='rank'&&!trendsReady&&!activeTaskPromises.has('trends')){
+    syncDatasets(activeDataVer,{priorityMode:'trends'});
   }
   resetFilters('all');if(mode==='rank'&&!rankDay)loadRank(el('rankDate').value);syncRankDateBtn();
 }
@@ -2052,6 +2065,10 @@ function openBookDetail(id,opts={}){
     window.scrollTo(0,0);
   }
   ensureBookShard(bid,{preloadedPromise:opts.preloadedPromise||null});
+  if(!coreReady&&failedTasks.has('core')&&!activeTaskPromises.has('core')&&(Date.now()-lastAutoCoreRetryMs)>=5000){
+    lastAutoCoreRetryMs=Date.now();
+    syncDatasets(activeDataVer,{onlyFailed:true});
+  }
 }
 function closeDetailToList({fromPopState=false,forceMode=null,applyExtra=null}={}){
   document.body.classList.remove('detailMode');
@@ -2300,7 +2317,7 @@ async function streamIntros(targetVer,{onlyFailed=false}={}){
       if(onlyFailed&&!failedTasks.has(key))continue;
       if(!onlyFailed&&verKey&&loadedIntroChunks.get(i)===verKey)continue;
       try{
-        const res=await fetchCached('./data/intros-'+i+'.json.gz',{gz:true,timeoutMs:18000,retries:2,ver:verKey,forceNetwork:onlyFailed});
+        const res=await fetchCached('./data/intros-'+i+'.json.gz',{gz:true,timeoutMs:25000,stallMs:20000,maxTotalMs:90000,retries:2,ver:verKey,forceNetwork:onlyFailed});
         const touched=applyIntroMap(res.data);
         loadedIntroChunks.set(i,verKey||res.ver||'loaded');
         introsLoaded=loadedIntroChunks.size;
@@ -2320,7 +2337,7 @@ async function streamIntros(targetVer,{onlyFailed=false}={}){
   return activeIntroStream;
 }
 
-async function syncDatasets(targetVer,{onlyFailed=false}={}){
+async function syncDatasets(targetVer,{onlyFailed=false,priorityMode=''}={}){
   const ver=targetVer||'';
   const wasCoreReady=coreReady;
   const need=key=>onlyFailed?failedTasks.has(key):!(ver&&cachedVers[key]===ver);
@@ -2341,75 +2358,76 @@ async function syncDatasets(targetVer,{onlyFailed=false}={}){
     if(document.body.classList.contains('detailMode')&&activeBookId)renderActiveDetail({preserveScroll:true});
   };
 
-  const jobs=[];
-  if(need('core')){
-    jobs.push(runSyncTask('core',async()=>{
-      let data, usedVer=ver;
-      try{
-        const res=await fetchCached('./data/catalog-core.json.gz',{gz:true,timeoutMs:18000,retries:2,ver,forceNetwork:onlyFailed});
-        data=res.data;usedVer=ver||data?.dataVer||'';
-      }catch(e){
-        if(e?.status===404){
-          const fb=await fetchWithRetry('./catalog.gz',{gz:true,timeoutMs:25000,retries:1,ver});
-          data=fb.data;usedVer=ver||data?.dataVer||'';
-        }else{throw e;}
-      }
-      const prevVer=cachedVers.core;
-      source=data;
-      cachedVers.core=usedVer;
-      if(usedVer&&!activeDataVer)activeDataVer=usedVer;
-      if(data?.introChunks)introChunkTotal=Number(data.introChunks);
-      if(usedVer&&prevVer&&usedVer!==prevVer){
-        loadedIntroChunks.clear();introsLoaded=0;introLoadStartedVer='';
-      }
-      refreshCategoryIndex();
-      hydrateBooks(source?.books||[]);
-      coreReady=catalogReady=true;
-      setMetaUpdated(source.updated);
-      el('size').textContent=number.format(books.length);
-      refreshViewAfter('all');
-    }));
-  }
-  if(need('trends')){
-    jobs.push(runSyncTask('trends',async()=>{
-      const fullTrends=await loadTrends({ver,timeoutMs:15000,retries:2,strict:true,forceNetwork:onlyFailed});
-      trends=fullTrends;trendsReady=true;cachedVers.trends=ver;
-      hydrateBooks(source?.books||books);
-      hydrateExtraBooks();
-      refreshViewAfter(mode==='rank'&&mold===8?'rank':'');
-    }));
-  }
-  if(need('radar')){
-    jobs.push(runSyncTask('radar',async()=>{
-      const fullRadar=await loadRadar({ver,timeoutMs:15000,retries:2,strict:true,forceNetwork:onlyFailed});
-      radar=fullRadar;radarReady=true;cachedVers.radar=ver;
-      hydrateExtraBooks();
-      initDebutDays();
-      refreshViewAfter(mode==='sweep'?'sweep':mode==='debut'?'debut':'');
-    }));
-  }
-  if(need('dates')){
-    jobs.push(runSyncTask('dates',async()=>{
-      const res=await fetchCached('./data/book-dates.json.gz',{gz:true,timeoutMs:12000,retries:2,ver,forceNetwork:onlyFailed});
-      starts=res.data||{};datesReady=true;cachedVers.dates=ver;
-      el('coverage').innerHTML=coverageSummary();
-      paintControls();
-      if(age||(mode==='rank'&&mold===1)){
-        if(mode==='rank')rebuildRank();
-        applyFilters({keepPage:true,preserveIfSame:true});
-      }
-    }));
-  }
-  if(need('hot')){
-    jobs.push(runSyncTask('hot',async()=>{
-      const res=await fetchCached('./data/hot.json',{gz:false,timeoutMs:10000,retries:2,ver,forceNetwork:onlyFailed});
-      hotOrder=new Map((res.data?.ids||[]).map((id,index)=>[String(id),index]));
-      hotReady=true;cachedVers.hot=ver;
-      if(mode==='search'&&el('sort').value==='hot')applyFilters({keepPage:true,preserveIfSame:true});
-    }));
-  }
+  const startCore=()=>runSyncTask('core',async()=>{
+    let data, usedVer=ver;
+    try{
+      const res=await fetchCached('./data/catalog-core.json.gz',{gz:true,timeoutMs:25000,stallMs:20000,maxTotalMs:90000,retries:2,ver,forceNetwork:onlyFailed});
+      data=res.data;usedVer=ver||data?.dataVer||'';
+    }catch(e){
+      if(e?.status===404){
+        const fb=await fetchWithRetry('./catalog.gz',{gz:true,timeoutMs:25000,stallMs:20000,maxTotalMs:120000,retries:1,ver});
+        data=fb.data;usedVer=ver||data?.dataVer||'';
+      }else{throw e;}
+    }
+    const prevVer=cachedVers.core;
+    source=data;
+    cachedVers.core=usedVer;
+    if(usedVer&&!activeDataVer)activeDataVer=usedVer;
+    if(data?.introChunks)introChunkTotal=Number(data.introChunks);
+    if(usedVer&&prevVer&&usedVer!==prevVer){
+      loadedIntroChunks.clear();introsLoaded=0;introLoadStartedVer='';
+    }
+    refreshCategoryIndex();
+    hydrateBooks(source?.books||[]);
+    coreReady=catalogReady=true;
+    setMetaUpdated(source.updated);
+    el('size').textContent=number.format(books.length);
+    refreshViewAfter('all');
+  });
+  const startTrends=()=>runSyncTask('trends',async()=>{
+    const fullTrends=await loadTrends({ver,timeoutMs:22000,stallMs:18000,maxTotalMs:60000,retries:2,strict:true,forceNetwork:onlyFailed});
+    trends=fullTrends;trendsReady=true;cachedVers.trends=ver;
+    hydrateBooks(source?.books||books);
+    hydrateExtraBooks();
+    refreshViewAfter(mode==='rank'&&mold===8?'rank':'');
+  });
+  const startRadar=()=>runSyncTask('radar',async()=>{
+    const fullRadar=await loadRadar({ver,timeoutMs:22000,stallMs:18000,maxTotalMs:60000,retries:2,strict:true,forceNetwork:onlyFailed});
+    radar=fullRadar;radarReady=true;cachedVers.radar=ver;
+    hydrateExtraBooks();
+    initDebutDays();
+    refreshViewAfter(mode==='sweep'?'sweep':mode==='debut'?'debut':'');
+  });
+  const startDates=()=>runSyncTask('dates',async()=>{
+    const res=await fetchCached('./data/book-dates.json.gz',{gz:true,timeoutMs:15000,stallMs:15000,maxTotalMs:40000,retries:2,ver,forceNetwork:onlyFailed});
+    starts=res.data||{};datesReady=true;cachedVers.dates=ver;
+    el('coverage').innerHTML=coverageSummary();
+    paintControls();
+    if(age||(mode==='rank'&&mold===1)){
+      if(mode==='rank')rebuildRank();
+      applyFilters({keepPage:true,preserveIfSame:true});
+    }
+  });
+  const startHot=()=>runSyncTask('hot',async()=>{
+    const res=await fetchCached('./data/hot.json',{gz:false,timeoutMs:12000,stallMs:12000,maxTotalMs:25000,retries:2,ver,forceNetwork:onlyFailed});
+    hotOrder=new Map((res.data?.ids||[]).map((id,index)=>[String(id),index]));
+    hotReady=true;cachedVers.hot=ver;
+    if(mode==='search'&&el('sort').value==='hot')applyFilters({keepPage:true,preserveIfSame:true});
+  });
 
-  if(jobs.length)await Promise.allSettled(jobs);
+  const wave1=[], queued=new Set();
+  if(need('core')){wave1.push(startCore());queued.add('core');}
+  if(need('hot')){wave1.push(startHot());queued.add('hot');}
+  if(need('dates')){wave1.push(startDates());queued.add('dates');}
+  if((mode==='sweep'||mode==='debut'||priorityMode==='radar')&&need('radar')){wave1.push(startRadar());queued.add('radar');}
+  if(((mode==='rank'&&mold===8)||priorityMode==='trends')&&need('trends')){wave1.push(startTrends());queued.add('trends');}
+  if(wave1.length)await Promise.allSettled(wave1);
+
+  const wave2=[];
+  if(!queued.has('trends')&&need('trends'))wave2.push(startTrends());
+  if(!queued.has('radar')&&need('radar'))wave2.push(startRadar());
+  if(wave2.length)await Promise.allSettled(wave2);
+
   if(coreReady&&introChunkTotal>0&&(!onlyFailed||!wasCoreReady)){
     streamIntros(activeDataVer||cachedVers.core);
   }
