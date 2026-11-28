@@ -363,19 +363,50 @@ body.sideCollapsed .filters { display: none; }
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(195, 228, 232, 0.16);
 }
-.mastRankBar label {
+.mastRankBar .rankDateLbl {
   font-size: 12px;
   color: var(--ink-3);
   white-space: nowrap;
 }
-#rankDate {
-  height: 28px;
-  padding: 0 8px;
+.popBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
   border-radius: 7px;
   border: 1px solid var(--line-2);
-  background: var(--bg-1);
+  background: var(--bg-sunken);
   color: var(--ink-1);
   font-size: 12.5px;
+  transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
+}
+.popBtn:hover, .popBtn[aria-expanded="true"] {
+  border-color: var(--line-3);
+}
+.popVal {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.popChev {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: var(--ink-3);
+  transition: transform 140ms var(--ease);
+}
+.popBtn[aria-expanded="true"] .popChev {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+#rankDateBtn {
+  height: 28px;
+  padding: 0 9px;
+}
+#dayBtn {
+  height: 28px;
+  padding: 0 9px;
 }
 #rankState {
   font-size: 12px;
@@ -930,7 +961,7 @@ body.sideCollapsed .expandSideBtn { display: inline-flex; align-items: center; }
   font-size: 12.5px;
   color: var(--ink-3);
 }
-#sort {
+#sortBtn {
   height: 32px;
   padding: 0 10px;
   border-radius: 8px;
@@ -2198,7 +2229,9 @@ footer a { color: var(--ink-3); }
   .results h2 { font-size: 15px; }
   #introScope { display: none; }
   .expandSideBtn { display: none !important; }
-  #sort, .viewSeg, .quickReset { height: 30px; }
+  #sortBtn, .viewSeg, .quickReset { height: 30px; }
+  #sortBtn { padding: 0 8px; font-size: 12px; }
+  #rankDateBtn { max-width: 174px; }
   .viewSeg button { height: 24px; padding: 0 9px; font-size: 12px; }
   .activeBar { margin-bottom: 10px; padding: 6px 10px; }
 
@@ -2593,14 +2626,15 @@ html[data-theme="light"] .mastRankBar {
   border: 1px solid rgba(206, 238, 232, 0.24);
   box-shadow: 0 4px 14px rgba(6, 18, 16, 0.24);
 }
-html[data-theme="light"] .mastRankBar label { color: #a7cbc4; }
+html[data-theme="light"] .mastRankBar .rankDateLbl { color: #a7cbc4; }
 html[data-theme="light"] #rankState { color: #e8f5f2; }
-html[data-theme="light"] #rankDate {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(206, 238, 232, 0.28);
+html[data-theme="light"] #rankDateBtn {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(206, 238, 232, 0.30);
   color: #f6fbfa;
-  color-scheme: dark;
 }
+html[data-theme="light"] #rankDateBtn .popChev { color: #a7cbc4; }
+html[data-theme="light"] #rankDateBtn[aria-expanded="true"] .popChev { color: #8be6d5; }
 html[data-theme="light"] #rankRetry {
   background: rgba(114, 216, 196, 0.20);
   color: #8be6d5;
@@ -2690,6 +2724,218 @@ html[data-theme="light"] .syncRetryBtn:hover {
   html[data-theme="light"] .tagSubHead::before {
     background: rgba(18, 56, 48, 0.22);
   }
+}
+
+/* Anchored In-Place Popovers (Sort, Weekly Archive, Mini Calendar) */
+.uiPop {
+  position: fixed;
+  z-index: 40;
+  min-width: 164px;
+  max-width: calc(100vw - 20px);
+  border-radius: 12px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-3);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.50);
+  padding: 6px;
+  color: var(--ink-1);
+}
+html[data-theme="light"] .uiPop {
+  box-shadow: 0 12px 32px rgba(14, 34, 30, 0.18);
+}
+.popList {
+  max-height: 252px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scrollbar-width: thin;
+}
+.popOpt {
+  width: 100%;
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  transition: background-color 120ms var(--ease), color 120ms var(--ease);
+}
+.popOpt:hover { background: var(--bg-2); color: var(--ink-1); }
+.popOpt.active {
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-weight: 600;
+}
+.popCheck {
+  font-size: 12px;
+  color: var(--accent);
+  flex: none;
+}
+.popHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 4px 7px;
+  border-bottom: 1px solid var(--line-1);
+}
+.popYears {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.popYears::-webkit-scrollbar { display: none; }
+.popYearBtn {
+  border: 0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  background: var(--pill);
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.popYearBtn[aria-pressed="true"] {
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+.popLatestBtn, .popCalReset {
+  border: 0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  background: var(--pill);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+}
+.popLatestBtn:hover, .popCalReset:hover { background: var(--accent-tint); }
+.popSub {
+  font-size: 11px;
+  color: var(--ink-4);
+  padding: 5px 8px 4px;
+}
+.popWkTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.popLatestTag {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+.popWkRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.popCalBox {
+  width: 262px;
+  max-width: calc(100vw - 32px);
+}
+.popCalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 3px 3px 7px;
+  border-bottom: 1px solid var(--line-1);
+}
+.popCalMonthWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.popCalNav {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--pill);
+  color: var(--ink-2);
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.popCalNav:hover:not(:disabled) { background: var(--bg-2); color: var(--ink-1); }
+.popCalMonth {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-1);
+  min-width: 78px;
+  text-align: center;
+}
+.popCalWk, .popCalGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+  text-align: center;
+}
+.popCalWk {
+  padding: 6px 0 3px;
+  font-size: 11px;
+  color: var(--ink-4);
+}
+.popCalDay {
+  position: relative;
+  height: 31px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  padding: 0;
+}
+.popCalDay.hasData {
+  color: var(--ink-1);
+  font-weight: 600;
+}
+.popCalDay.hasData:hover { background: var(--bg-2); }
+.popCalDay.hasData i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: 1px;
+}
+.popCalDay.active {
+  background: var(--accent-solid);
+  color: #0b1b18;
+  font-weight: 700;
+}
+html[data-theme="light"] .popCalDay.active { color: #ffffff; }
+.popCalDay.active i { background: currentColor; }
+.popCalDay.off {
+  color: var(--ink-4);
+  opacity: 0.34;
+  cursor: default;
+}
+.popCalFoot {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line-1);
+  font-size: 11px;
+  color: var(--ink-4);
+  text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {

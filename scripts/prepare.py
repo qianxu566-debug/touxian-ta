@@ -131,7 +131,13 @@ for f in rank_files:
     rank_snaps[day_str] = s
 
 all_rank_dates = sorted(rank_snaps.keys())
-kept_rank_dates = all_rank_dates[-90:]
+# Permanent weekly rank archive: keep 1 snapshot per ISO (year, week) using the latest day in that week.
+# Current week naturally serves today's latest snapshot; past weeks freeze permanently without a 90-day cutoff.
+week_latest = {}
+for d_str in all_rank_dates:
+    iso_y, iso_w, _ = date.fromisoformat(d_str).isocalendar()
+    week_latest[(iso_y, iso_w)] = d_str
+kept_rank_dates = sorted(week_latest.values())
 rank_dates_desc = list(reversed(kept_rank_dates))
 (out / 'history' / 'index.json').write_text(json.dumps(rank_dates_desc), encoding='utf-8')
 
@@ -841,6 +847,8 @@ for bid in candidate_debut_ids:
     debut_date = min(dates_matched)
     d_debut = date.fromisoformat(debut_date)
     day_num = (date.fromisoformat(ref_today) - d_debut).days + 1 if ref_today else 1
+    if day_num > 30:
+        continue
     end_cap = str(min(date.fromisoformat(ref_today), d_debut + timedelta(days=13)))
 
     start_win_end = str(d_debut + timedelta(days=3))
@@ -1202,6 +1210,7 @@ print(
             'latestRankDate': latest_rank_date,
             'seriesDays': len(series_dates),
             'rankDays': len(all_rank_dates),
+            'rankArchiveWeeks': len(kept_rank_dates),
             'trendsBooks': len(trends_books),
             'sweepBooks': len(sweep_books),
             'debutBooks': len(debut_books),

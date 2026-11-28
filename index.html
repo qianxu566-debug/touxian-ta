@@ -9,16 +9,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>偷闲獭 · 番茄小说检索</title>
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./assets/otter.svg?v=21">
-<link rel="apple-touch-icon" href="./assets/icon-192.png?v=21">
+<link rel="icon" href="./assets/otter.svg?v=22">
+<link rel="apple-touch-icon" href="./assets/icon-192.png?v=22">
 <style>[hidden]{display:none!important}</style>
 <script>try{if(localStorage.getItem('touxian-theme')==='light'){document.documentElement.dataset.theme='light';var m=document.getElementById('themeColorMeta');if(m)m.content='#f9fcfb';}}catch(e){}</script>
-<link rel="stylesheet" href="./assets/site.css?v=21">
+<link rel="stylesheet" href="./assets/site.css?v=22">
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><img src="./assets/otter.svg?v=21" alt="" width="30" height="30"><span>偷闲獭</span></div>
+    <div class="brand"><img src="./assets/otter.svg?v=22" alt="" width="30" height="30"><span>偷闲獭</span></div>
     <nav aria-label="发现作品" id="nav"></nav>
     <div class="headStats"><span><span class="deskOnly">收录 </span><b id="size">—</b> 本</span><span class="statSep">·</span><span class="meta">加载中</span></div>
     <button type="button" id="themeBtn" class="themeBtn" aria-pressed="false" aria-label="当前深色模式，点击切换浅色模式" title="切换浅色模式"><svg class="thMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="thSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg><span class="themeLbl" id="themeLbl">深色</span></button>
@@ -147,8 +147,9 @@
       </form>
       <div id="mastRankBar" class="mastRankBar" hidden>
         <span id="rankDateWrap" class="rankDateWrap">
-          <label for="rankDate">采集日</label>
-          <select id="rankDate" aria-label="选择榜单采集日"></select>
+          <span class="rankDateLbl">榜单期数</span>
+          <select id="rankDate" hidden aria-hidden="true"></select>
+          <button type="button" id="rankDateBtn" class="popBtn" aria-haspopup="dialog" aria-expanded="false" aria-label="选择历史周榜"><span class="popVal">加载中…</span><svg class="popChev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>
         </span>
         <span id="rankState" role="status"></span>
         <button type="button" id="rankRetry" hidden>重新加载</button>
@@ -174,7 +175,7 @@
   <div id="debutFields" class="modeBar" hidden>
     <div class="modeGroup"><strong>首秀窗</strong><div class="segOpts" id="debutWin"></div></div>
     <div class="modeGroup"><strong>首秀源</strong><div class="segOpts" id="debutKind"></div></div>
-    <div class="modeGroup"><strong>指定日</strong><select id="day" aria-label="指定首秀日期"></select></div>
+    <div class="modeGroup"><strong>指定日</strong><select id="day" hidden aria-hidden="true"></select><button type="button" id="dayBtn" class="popBtn" aria-haspopup="dialog" aria-expanded="false" aria-label="指定首秀日期"><span class="popVal">全部首秀日</span><svg class="popChev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button></div>
     <span class="modeNote" id="debutState" role="status"></span>
   </div>
 
@@ -192,7 +193,7 @@
       <small id="introScope" hidden></small>
     </div>
     <div class="viewtools">
-      <label class="sortWrap">排序 <select id="sort"></select></label>
+      <div class="sortWrap"><span>排序</span><select id="sort" hidden aria-hidden="true"></select><button type="button" id="sortBtn" class="popBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="排序方式"><span class="popVal">书库热度</span><svg class="popChev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button></div>
       <div class="viewSeg" role="group" aria-label="视图切换">
         <button type="button" id="cardView" aria-pressed="true">卡片</button>
         <button type="button" id="denseView" aria-pressed="false">紧凑</button>
@@ -227,7 +228,7 @@
     <div class="wxCard appCard">
       <div id="appModalWxTip" class="wxTipTop" hidden><span>微信内会拦截安装包下载</span><span class="wxArrow">请点右上角 ··· ↗</span></div>
       <div class="appHead">
-        <img src="./assets/otter.svg?v=21" alt="" width="40" height="40">
+        <img src="./assets/otter.svg?v=22" alt="" width="40" height="40">
         <div>
           <h3 id="appModalTitle">偷闲獭 App</h3>
           <div class="appSub"><span class="appVerPill" id="appModalMeta">Android v2.0.1 · 仅 65 KB</span></div>
@@ -247,12 +248,14 @@
   <details class="coverage"><summary>实际收录范围与更新方式</summary><div id="coverage"></div></details>
 </main>
 
+<div id="uiPop" class="uiPop" hidden role="dialog" aria-modal="false"></div>
+
 <footer>偷闲獭 · 番茄作品检索<span id="footAppWrap" hidden> · <button type="button" id="footAppBtn" class="footLinkBtn">下载安卓 App</button></span></footer>
 
 <script type="module">
 'use strict';
-import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,bindTrendChart,windowMetric} from './assets/daily.js?v=21';
-import {dayString,ageDays,compressed,fetchWithRetry,fetchCached,readCachedData,pruneHistoryCache,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=21';
+import {loadTrends,loadRadar,getTrend,shortDelta,deltaClass,formatPct,dayLabel,formatWordStatus,trendStateLabel,classifyTrend,evaluateSweepBook,evaluateDebutBook,renderRankBadges,renderTrendPanel,bindTrendChart,windowMetric} from './assets/daily.js?v=22';
+import {dayString,ageDays,compressed,fetchWithRetry,fetchCached,readCachedData,pruneHistoryCache,appLink,mobilePlatform,isWeChat,isStandaloneApp} from './assets/reader.js?v=22';
 let age='', submitted='', trendFilter='', scoreFilter='', urlNotice='';
 const ageChoices=[['','不限'],['3','近3个月'],['6','近半年'],['12','近一年']];
 const trendChoices=[['','全部'],['rising','一路在涨'],['rebound','回升中'],['flat','走平'],['falling','回落中']];
@@ -388,7 +391,7 @@ const modes={
   debut:['首秀','聚焦 60 万字内、近期新晋冲榜或实测涨破万读的起量连载新书，追踪 14 天首秀期增长。']
 };
 const modeHelpMap={
-  rank:{btn:'? 榜单说明',html:'<p><strong>六大榜单口径说明：</strong></p><p>· <strong>阅读榜</strong>：完整抓取全部 <strong>40 个官方大分类（男频 19 + 女频 21）</strong>前 100 名（保留经典完结作，自动剔除尾部 &lt;5,000 在读）；不选主分类时按在读人数总览，选定主分类后按名次 <strong>#1 → #100</strong>，支持组合筛选与历史采集日回看。<br>· <strong>新书榜</strong>：完整抓取 <strong>40 个官方大分类前 100 名精选净化</strong>，自动剔除<strong>已完结、在读 &lt;5,000、停更超 7 天及开书超半年</strong>的老书/烂尾书；选定主分类后按精选顺序 <strong>#1 → #N</strong> 排列。<br>· <strong>黑马榜</strong>：官方男女频黑马榜各前 50 名（共 <strong>100 本</strong>），顶部支持切换全部/男频/女频与历史采集日。<br>· <strong>暴涨榜</strong>：偷闲獭独家实时榜，聚焦<strong>连载中</strong>作品近 7 天 / 近 30 天实测涨势前 <strong>100 名</strong>；默认按<strong>增速%</strong>（要求当前在读 ≥1 万、起始基数 ≥5,000、净增 &gt;0，专挖官方榜外起飞黑马），也可切换<strong>净增人数</strong>看大盘爆量。<br>· <strong>口碑榜</strong>：偷闲獭独家连载高分前 <strong>100 名</strong>，采用<strong>贝叶斯加权口碑分</strong>（要求点评人数 ≥200，平滑参数防小样本刷分），并自动过滤已确认停更超 30 天的断更书。<br>· <strong>完结榜</strong>：偷闲獭独家高分完本前 <strong>100 名</strong>，同样采用贝叶斯加权口碑分（点评人数 ≥200），专供书荒找一口气看爽的完结神作。</p>'},
+  rank:{btn:'? 榜单说明',html:'<p><strong>六大榜单口径说明：</strong></p><p>· <strong>阅读榜</strong>：完整抓取全部 <strong>40 个官方大分类（男频 19 + 女频 21）</strong>前 100 名（保留经典完结作，自动剔除尾部 &lt;5,000 在读）；不选主分类时按在读人数总览，选定主分类后按名次 <strong>#1 → #100</strong>，支持组合筛选与按年/周永久归档回看。<br>· <strong>新书榜</strong>：完整抓取 <strong>40 个官方大分类前 100 名精选净化</strong>，自动剔除<strong>已完结、在读 &lt;5,000、停更超 7 天及开书超半年</strong>的老书/烂尾书；选定主分类后按精选顺序 <strong>#1 → #N</strong> 排列。<br>· <strong>黑马榜</strong>：官方男女频黑马榜各前 50 名（共 <strong>100 本</strong>），顶部支持切换全部/男频/女频与按年/周归档回看。<br>· <strong>暴涨榜</strong>：偷闲獭独家实时榜，聚焦<strong>连载中</strong>作品近 7 天 / 近 30 天实测涨势前 <strong>100 名</strong>；默认按<strong>增速%</strong>（要求当前在读 ≥1 万、起始基数 ≥5,000、净增 &gt;0，专挖官方榜外起飞黑马），也可切换<strong>净增人数</strong>看大盘爆量。<br>· <strong>口碑榜</strong>：偷闲獭独家连载高分前 <strong>100 名</strong>，采用<strong>贝叶斯加权口碑分</strong>（要求点评人数 ≥200，平滑参数防小样本刷分），并自动过滤已确认停更超 30 天的断更书。<br>· <strong>完结榜</strong>：偷闲獭独家高分完本前 <strong>100 名</strong>，同样采用贝叶斯加权口碑分（点评人数 ≥200），专供书荒找一口气看爽的完结神作。</p>'},
   sweep:{btn:'? 什么是扫榜',html:'<p><strong>什么是扫榜：</strong>「扫榜」会每天自动记录各分类前 100 名与特色榜，把近 1 / 7 / 30 天内<strong>只要上过榜的作品全部汇总到一起</strong>——哪怕今天掉出榜单，在扫榜池里依然能被搜到。</p><p><strong>怎么用最高效：</strong>你可以切换「窗口新上榜」只看近期刚冲进来的新面孔，叠加主分类、题材、走势状态（如「一路在涨」），默认按<strong>区间涨幅</strong>排序捉黑马。</p>'},
   debut:{btn:'? 什么是首秀',html:'<p><strong>什么是首秀：</strong>「首秀」专门淘近期刚刚冒头且<strong>已经起量（≥8,000 在读、连载中、60 万字内）</strong>的潜力新书，免去追太瘦幼苗的烦恼。</p><p><strong>三大新晋来源 &amp; 时间窗说明：</strong>包含「新书榜首秀」「阅读·黑马新晋」与「破万新苗（实测从 1 万以下冲破 1 万在读）」，以首次突破日为首秀日追踪 14 天累计与日均涨势。<em>注：当前榜单与全库实测自 11-22 起积累，满 7 天/14 天后各时间窗将自动拉开区分。</em></p>'}
 };
@@ -498,10 +501,15 @@ function rebuildSweep(){
   el('sweepState').textContent=note;
 }
 function initDebutDays(){
-  const ds=[...new Set(Object.values(radar?.debut||{}).map(r=>r[0]))].sort((a,b)=>b.localeCompare(a));
+  const refToday=radar?.latestRankDate||trends?.latestDate||dayString();
+  const refMs=Date.parse(refToday+'T00:00:00Z');
+  const ds=[...new Set(Object.values(radar?.debut||{}).map(r=>r[0]))]
+    .filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&(!Number.isFinite(refMs)||(refMs-Date.parse(d+'T00:00:00Z'))<30*86400000))
+    .sort((a,b)=>b.localeCompare(a));
   const cur=el('day').value;
   el('day').innerHTML=option('','全部首秀日')+ds.map(d=>option(d,d)).join('');
   if(ds.includes(cur))el('day').value=cur;
+  syncDayBtn();
 }
 function rebuildDebut(){
   const selectedDay=el('day').value;
@@ -651,6 +659,7 @@ async function loadRank(date){
     }
     const d=date||rankDates[0];if(!rankDates.includes(d))throw Error('日期无记录');
     el('rankDate').value=d;
+    syncRankDateBtn();
     const snapVer=(d===rankDates[0]&&activeDataVer)?activeDataVer:d;
     const snapRes=await fetchCached('./history/'+d+'.json.gz',{gz:true,timeoutMs:14000,retries:2,ver:snapVer});
     const snapshot=snapRes.data;
@@ -956,7 +965,9 @@ function applyFilters(opts={}){
       ?('首秀池 '+number.format(debutBooks.length)+' 本（60 万字内起量新书）')
       :((failedTasks.has('core')||failedTasks.has('radar'))?'首秀数据同步超时，请点击重试':'正在同步首秀数据…');
   }
-  el('sort').title=f.order==='hot'?'按番茄最热书库返回顺序，未取得热度位置的作品按在读人数排列。有搜索词时优先相关作品。':f.order==='gain7'?'按近 7 天在读人数净增长降序排列（当前已累积不足 7 天时按窗口内实测跨度计算）。':f.order==='gain30'?'按近 30 天在读人数净增长降序排列（当前已累积不足 30 天时按窗口内实测跨度计算）。':f.order==='scoreCount'?'按番茄官方点评人数（评论数）从高到低排列，暂未采集到评分数据的作品排在末尾。':'';
+  const sortTip=f.order==='hot'?'按番茄最热书库返回顺序，未取得热度位置的作品按在读人数排列。有搜索词时优先相关作品。':f.order==='gain7'?'按近 7 天在读人数净增长降序排列（当前已累积不足 7 天时按窗口内实测跨度计算）。':f.order==='gain30'?'按近 30 天在读人数净增长降序排列（当前已累积不足 30 天时按窗口内实测跨度计算）。':f.order==='scoreCount'?'按番茄官方点评人数（评论数）从高到低排列，暂未采集到评分数据的作品排在末尾。':'';
+  el('sort').title=sortTip;
+  syncSortBtn(sortTip);syncDayBtn();syncRankDateBtn();
   showSelection(f);
   syncResultsBar();
   el('brief').textContent=[channel,category,scoreFilter&&(scoreChoices.find(x=>x[0]===scoreFilter)?.[1]||scoreFilter),age&&ageChoices.find(x=>x[0]===age)[1],trendFilter&&trendStateLabel(trendFilter),status&&statusLabel(status),...selectedTags].filter(Boolean).join(' · ');
@@ -1259,6 +1270,7 @@ listing.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
+    if(!el('uiPop').hidden){closePop();return;}
     el('wxGuide').hidden=true;
     el('appModal').hidden=true;
     if(!el('tagpanel').hidden){togglePanel(false);return;}
@@ -1352,6 +1364,7 @@ function resetFilters(defaultHeat){
   toggleCats(false);togglePanel(false,{skipFocus:true});paintControls();renderTags();applyFilters();
 }
 function changeMode(next){
+  closePop();
   if(!modes[next])next='search';
   mode=next;
   document.body.classList.toggle('rankMode',next==='rank');
@@ -1390,12 +1403,13 @@ function changeMode(next){
     sorts.push(['debutGain','首秀期累计 ↓'],['debutAvg','首秀期日均 ↓'],['reads','在读人数 ↓'],['score','小说评分 ↓'],['scoreCount','评论数 ↓'],['gain7','近 7 天上涨 ↓'],['gain30','近 30 天上涨 ↓'],['debutDate','最新首秀 ↓'],['long','字数 ↓'],['short','字数 ↑']);
   }
   el('sort').innerHTML=sorts.map(x=>option(...x)).join('');
+  syncSortBtn();
   el('rankMore').hidden=true;
   updateSavedButton();el('savedNotice').textContent='';
   if(mode==='sweep')rebuildSweep();
   if(mode==='debut'){initDebutDays();rebuildDebut();}
   try{const u=new URL(location.href);if(mode==='search')u.searchParams.delete('view');else u.searchParams.set('view',mode);history.replaceState(null,'',u.pathname+u.search);}catch{}
-  resetFilters('all');if(mode==='rank'&&!rankDay)loadRank(el('rankDate').value);
+  resetFilters('all');if(mode==='rank'&&!rankDay)loadRank(el('rankDate').value);syncRankDateBtn();
 }
 function layout(dense){
   listing.classList.toggle('dense',mode==='rank'?false:dense);
@@ -1504,7 +1518,145 @@ el('expandSide').onclick=()=>{
   try{localStorage.setItem('touxian-side-collapsed','0');}catch{}
   syncResultsBar();
 };
-window.addEventListener('resize',syncResultsBar);
+window.addEventListener('resize',()=>{syncResultsBar();closePop();});
+window.addEventListener('scroll',()=>{if(popKind)closePop();},{passive:true});
+
+let popKind='', popAnchor=null, popAlignRight=false, popRankYear=0, popCalYM=null;
+function isoWeekInfo(dateStr){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dateStr||''))return {year:0,week:0};
+  const d=new Date(dateStr+'T00:00:00Z');
+  const day=d.getUTCDay()||7;
+  d.setUTCDate(d.getUTCDate()+4-day);
+  const year=d.getUTCFullYear();
+  const week=Math.ceil((((d-new Date(Date.UTC(year,0,1)))/86400000)+1)/7);
+  return {year,week};
+}
+function syncSortBtn(tip=''){
+  const sel=el('sort'), btn=el('sortBtn');
+  if(!sel||!btn)return;
+  const opt=sel.selectedOptions?.[0]||sel.options?.[0];
+  btn.querySelector('.popVal').textContent=opt?.textContent||'排序';
+  if(tip)btn.title=tip;
+}
+function syncRankDateBtn(){
+  const sel=el('rankDate'), btn=el('rankDateBtn');
+  if(!sel||!btn)return;
+  const val=sel.value||rankDates[0]||'';
+  const lbl=btn.querySelector('.popVal');
+  if(!val){lbl.textContent='加载中…';return;}
+  const latestWi=isoWeekInfo(rankDates[0]||val);
+  const wi=isoWeekInfo(val);
+  if(val===rankDates[0])lbl.textContent='最新 · '+val.slice(5);
+  else if(wi.year===latestWi.year)lbl.textContent='第'+wi.week+'周 · '+val.slice(5);
+  else lbl.textContent=wi.year+' 第'+wi.week+'周 · '+val.slice(5);
+}
+function syncDayBtn(){
+  const sel=el('day'), btn=el('dayBtn');
+  if(!sel||!btn)return;
+  btn.querySelector('.popVal').textContent=sel.value||'全部首秀日';
+}
+function closePop(){
+  const pop=el('uiPop');
+  if(pop)pop.hidden=true;
+  for(const id of ['sortBtn','rankDateBtn','dayBtn'])el(id)?.setAttribute('aria-expanded','false');
+  popKind='';popAnchor=null;
+}
+function positionPop(btn,alignRight=false){
+  const pop=el('uiPop');if(!pop||!btn)return;
+  pop.style.left='0px';pop.style.top='0px';pop.hidden=false;
+  const br=btn.getBoundingClientRect(), pr=pop.getBoundingClientRect();
+  let left=alignRight?(br.right-pr.width):br.left;
+  left=Math.max(10,Math.min(left,window.innerWidth-pr.width-10));
+  let top=br.bottom+6;
+  if(top+pr.height>window.innerHeight-10&&br.top-6-pr.height>=10)top=br.top-6-pr.height;
+  pop.style.left=Math.round(left)+'px';
+  pop.style.top=Math.round(top)+'px';
+}
+function renderPop(){
+  const pop=el('uiPop');if(!pop||!popKind||!popAnchor)return;
+  if(popKind==='sort'){
+    const cur=el('sort').value;
+    const opts=[...el('sort').options].map(o=>`<button type="button" class="popOpt${o.value===cur?' active':''}" data-sort-val="${esc(o.value)}"><span>${esc(o.textContent)}</span>${o.value===cur?'<span class="popCheck">✓</span>':''}</button>`).join('');
+    pop.innerHTML=`<div class="popList" role="listbox" aria-label="排序方式">${opts}</div>`;
+    pop.querySelectorAll('[data-sort-val]').forEach(btn=>{
+      btn.onclick=()=>{el('sort').value=btn.dataset.sortVal;syncSortBtn();closePop();applyFilters();};
+    });
+  }else if(popKind==='rankDate'){
+    if(!rankDates.length){
+      pop.innerHTML='<div class="popSub">正在读取周榜归档期数…</div>';
+      positionPop(popAnchor,popAlignRight);return;
+    }
+    const cur=el('rankDate').value||rankDates[0];
+    const byYear=new Map();
+    for(const d of rankDates){
+      const wi=isoWeekInfo(d);
+      if(!byYear.has(wi.year))byYear.set(wi.year,[]);
+      byYear.get(wi.year).push({d,wi});
+    }
+    const years=[...byYear.keys()].sort((a,b)=>b-a);
+    if(!popRankYear||!byYear.has(popRankYear))popRankYear=isoWeekInfo(cur).year||years[0];
+    const yearBtns=years.map(y=>`<button type="button" class="popYearBtn" data-pop-year="${y}" aria-pressed="${y===popRankYear}">${y}年</button>`).join('');
+    const listHtml=(byYear.get(popRankYear)||[]).map(({d,wi})=>{
+      const isCur=d===cur, isLatest=d===rankDates[0];
+      return `<button type="button" class="popOpt${isCur?' active':''}" data-rank-date="${esc(d)}"><span class="popWkTitle"><b>第 ${wi.week} 周</b>${isLatest?'<span class="popLatestTag">最新</span>':''}</span><span class="popWkRight"><span>${esc(d.slice(5))}</span>${isCur?'<span class="popCheck">✓</span>':''}</span></button>`;
+    }).join('');
+    pop.innerHTML=`<div class="popHead"><div class="popYears">${yearBtns}</div>${cur!==rankDates[0]?'<button type="button" class="popLatestBtn" data-rank-latest="1">回到最新</button>':''}</div><div class="popSub">每周保存一期 · 永久可回溯 · 共 ${rankDates.length} 期</div><div class="popList">${listHtml}</div>`;
+    pop.querySelectorAll('[data-pop-year]').forEach(b=>{
+      b.onclick=()=>{popRankYear=Number(b.dataset.popYear);renderPop();};
+    });
+    const pickRank=d=>{closePop();if(d!==el('rankDate').value||rankError){el('rankDate').value=d;syncRankDateBtn();loadRank(d);}};
+    pop.querySelectorAll('[data-rank-date]').forEach(b=>{b.onclick=()=>pickRank(b.dataset.rankDate);});
+    const latBtn=pop.querySelector('[data-rank-latest]');
+    if(latBtn)latBtn.onclick=()=>pickRank(rankDates[0]);
+  }else if(popKind==='day'){
+    const dayOpts=[...el('day').options].map(o=>o.value).filter(Boolean);
+    const availSet=new Set(dayOpts), cur=el('day').value;
+    const refDay=cur||dayOpts[0]||radar?.latestRankDate||trends?.latestDate||dayString();
+    if(!popCalYM){popCalYM={y:Number(refDay.slice(0,4))||2026,m:Number(refDay.slice(5,7))||11};}
+    const {y,m}=popCalYM;
+    const ymNum=(yy,mm)=>yy*12+mm;
+    const monthsAvail=dayOpts.map(d=>ymNum(Number(d.slice(0,4)),Number(d.slice(5,7))));
+    const minYM=monthsAvail.length?Math.min(...monthsAvail):ymNum(y,m);
+    const maxYM=monthsAvail.length?Math.max(...monthsAvail):ymNum(y,m);
+    const canPrev=ymNum(y,m)>minYM, canNext=ymNum(y,m)<maxYM;
+    const firstWd=(new Date(Date.UTC(y,m-1,1)).getUTCDay()+6)%7;
+    const totalDays=new Date(Date.UTC(y,m,0)).getUTCDate();
+    const cells=[];
+    for(let k=0;k<firstWd;k++)cells.push('<span></span>');
+    for(let day=1;day<=totalDays;day++){
+      const dStr=y+'-'+String(m).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      if(availSet.has(dStr)){
+        cells.push(`<button type="button" class="popCalDay hasData${cur===dStr?' active':''}" data-cal-day="${dStr}">${day}<i></i></button>`);
+      }else{
+        cells.push(`<span class="popCalDay off">${day}</span>`);
+      }
+    }
+    pop.innerHTML=`<div class="popCalBox"><div class="popCalHead"><div class="popCalMonthWrap"><button type="button" class="popCalNav" data-cal-nav="-1"${canPrev?'':' disabled'} aria-label="上个月">‹</button><span class="popCalMonth">${y}年${m}月</span><button type="button" class="popCalNav" data-cal-nav="1"${canNext?'':' disabled'} aria-label="下个月">›</button></div><button type="button" class="popCalReset"${cur?'':' aria-current="true"'}>全部首秀日</button></div><div class="popCalWk"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div><div class="popCalGrid">${cells.join('')}</div><div class="popCalFoot">${dayOpts.length?('近 30 天每日记录 · 高亮日可选（共 '+dayOpts.length+' 天）'):'正在同步首秀日期…'}</div></div>`;
+    pop.querySelectorAll('[data-cal-nav]').forEach(b=>{
+      b.onclick=()=>{
+        const step=Number(b.dataset.calNav);
+        let nm=popCalYM.m+step, ny=popCalYM.y;
+        if(nm<1){nm=12;ny--;}else if(nm>12){nm=1;ny++;}
+        popCalYM={y:ny,m:nm};renderPop();
+      };
+    });
+    pop.querySelectorAll('[data-cal-day]').forEach(b=>{
+      b.onclick=()=>{el('day').value=b.dataset.calDay;syncDayBtn();closePop();rebuildDebut();paintControls();renderTags();applyFilters();};
+    });
+    pop.querySelector('.popCalReset').onclick=()=>{el('day').value='';syncDayBtn();closePop();rebuildDebut();paintControls();renderTags();applyFilters();};
+  }
+  positionPop(popAnchor,popAlignRight);
+}
+function openPop(kind,btn,alignRight=false){
+  if(popKind===kind&&popAnchor===btn){closePop();return;}
+  closePop();
+  popKind=kind;popAnchor=btn;popAlignRight=alignRight;
+  btn.setAttribute('aria-expanded','true');
+  renderPop();
+}
+el('sortBtn').onclick=()=>openPop('sort',el('sortBtn'),true);
+el('rankDateBtn').onclick=()=>{popRankYear=0;openPop('rankDate',el('rankDateBtn'),false);};
+el('dayBtn').onclick=()=>{popCalYM=null;openPop('day',el('dayBtn'),false);};
 
 function closeSheet(){
   document.body.classList.remove('sheetOpen','mobileTagView');
@@ -1533,6 +1685,8 @@ document.addEventListener('click',e=>{
     if(mode==='rank'&&rankError)loadRank(el('rankDate').value);
     return;
   }
+  const pop=el('uiPop');
+  if(pop&&!pop.hidden&&!pop.contains(e.target)&&!e.target.closest('.popBtn'))closePop();
   if(!compact.matches&&!el('tagpanel').hidden){
     if(e.target.isConnected&&!el('tagpanel').contains(e.target)&&!e.target.closest('#more'))togglePanel(false);
   }
