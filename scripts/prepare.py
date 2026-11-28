@@ -1037,6 +1037,7 @@ def eff_readers(book_item):
 
 
 INTRO_CHUNKS = 4
+BOOK_BUCKETS = 100
 ver_sig = f"{cat.get('updated') or ''}|{latest_date or ''}|{latest_rank_date or ''}|{len(slim_books)}|{valid_covers}|{len(trends_books)}|{len(sweep_books)}"
 data_ver = f"{(latest_date or latest_rank_date or '0')}_{hashlib.sha1(ver_sig.encode('utf-8')).hexdigest()[:8]}"
 
@@ -1048,6 +1049,7 @@ core_books = [{k: v for k, v in b.items() if k != 'intro'} for b in ordered_slim
 core_payload = {
     'dataVer': data_ver,
     'introChunks': INTRO_CHUNKS,
+    'bookBuckets': BOOK_BUCKETS,
     'updated': cat.get('updated'),
     'coverage': cat.get('coverage'),
     'refresh': cat.get('refresh'),
@@ -1072,6 +1074,86 @@ for chunk_i in range(INTRO_CHUNKS):
     )
     (out / 'data' / f'intros-{chunk_i}.json.gz').write_bytes(part_gz)
     intro_bytes.append(len(part_gz))
+
+
+def book_bucket_id(bid: str) -> str:
+    s = str(bid or '').strip()
+    if s.isdigit():
+        return f'{int(s) % BOOK_BUCKETS:02d}'
+    return f'{int(hashlib.sha1(s.encode("utf-8")).hexdigest()[:8], 16) % BOOK_BUCKETS:02d}'
+
+
+def build_shard_book(item):
+    bid = str(item['id'])
+    entry = {
+        'id': bid,
+        'title': item.get('title') or '',
+        'author': item.get('author') or '',
+        'intro': (item.get('intro') or '').strip(),
+        'status': item.get('status') or '',
+        'words': item.get('words'),
+        'readers': eff_readers(item),
+        'tags': item.get('tags') or [],
+        'primary': item.get('primary') or [],
+        'channel': item.get('channel') or '',
+        'coverUrl': item.get('coverUrl') or '',
+    }
+    for opt_k in ('readersText', 'officialTags', 'lastUpdate', 'sharedOfficial', 'score', 'scoreCount'):
+        val = item.get(opt_k)
+        if val is not None and val != '' and val != {}:
+            entry[opt_k] = val
+    st = (book_dates.get(bid) or {}).get('start')
+    if st:
+        entry['start'] = st
+    tr = trends_books.get(bid)
+    if tr:
+        entry['t'] = tr
+    bg = badges.get(bid)
+    if bg:
+        entry['badges'] = bg
+    return entry
+
+
+books_dir = out / 'data' / 'books'
+if books_dir.exists():
+    shutil.rmtree(books_dir)
+books_dir.mkdir(parents=True, exist_ok=True)
+
+bucket_maps = {f'{i:02d}': {} for i in range(BOOK_BUCKETS)}
+sharded_ids = set()
+for b in ordered_slim:
+    bid = str(b['id'])
+    sharded_ids.add(bid)
+    bucket_maps[book_bucket_id(bid)][bid] = build_shard_book(b)
+
+for bid, m in extra_books.items():
+    bid_s = str(bid)
+    if bid_s in sharded_ids:
+        continue
+    sharded_ids.add(bid_s)
+    ex_item = dict(m)
+    ex_item['id'] = bid_s
+    bucket_maps[book_bucket_id(bid_s)][bid_s] = build_shard_book(ex_item)
+
+bucket_bytes_total = 0
+bucket_max_bytes = 0
+shard_ref_date = latest_date or latest_rank_date
+for bkey, bmap in bucket_maps.items():
+    b_payload = {
+        'v': data_ver,
+        'd': shard_ref_date,
+        'dates': series_dates,
+        'books': bmap,
+    }
+    b_gz = gzip.compress(
+        json.dumps(b_payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8'),
+        compresslevel=6,
+        mtime=0,
+    )
+    (books_dir / f'b{bkey}.json.gz').write_bytes(b_gz)
+    bucket_bytes_total += len(b_gz)
+    if len(b_gz) > bucket_max_bytes:
+        bucket_max_bytes = len(b_gz)
 
 
 ge8k_books = [
@@ -1167,6 +1249,7 @@ trends_payload['stats']['updatedBooks'] = updated_count
 boot_payload = {
     'dataVer': data_ver,
     'introChunks': INTRO_CHUNKS,
+    'bookBuckets': BOOK_BUCKETS,
     'updated': cat.get('updated'),
     'coverage': cat.get('coverage'),
     'latestDate': latest_date,
@@ -1224,6 +1307,8 @@ print(
             'bootBytes': (out / 'data' / 'boot.json.gz').stat().st_size,
             'coreBytes': len(core_gz),
             'introBytes': intro_bytes,
+            'bookBucketBytesTotal': bucket_bytes_total,
+            'bookBucketMaxBytes': bucket_max_bytes,
             'slimCatalogBytes': slim_cat_bytes,
         },
         ensure_ascii=False,
