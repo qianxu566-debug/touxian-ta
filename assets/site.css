@@ -4427,6 +4427,688 @@ body.detailMode #bookDetailView {
   color: var(--ink-3);
 }
 
+/* Mobile Header MyBtn + Shelf v29 Slimming + Drawer + SubPages + Modals */
+.myBtn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--ink-1);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: border-color 140ms var(--ease), color 140ms var(--ease), background-color 140ms var(--ease);
+}
+.myBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+body.shelfMode .mast {
+  display: none !important;
+}
+body.shelfMode .shelfView {
+  margin-top: 2px;
+}
+.shelfHeadRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.shelfPageTitle {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--ink-1);
+}
+.shelfHeadMyBtn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.shelfHeadMyBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.fattenReadyBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--up-tint);
+  border: 1px solid rgba(136, 214, 163, 0.35);
+  font-size: 12.5px;
+  color: var(--ink-1);
+}
+.fattenReadyTxt b {
+  color: var(--up);
+}
+.fattenReadyOps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fBannerGoBtn, .fBannerAckBtn {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.fBannerGoBtn {
+  border: 0;
+  background: var(--accent-solid);
+  color: #0b1b18;
+}
+html[data-theme="light"] .fBannerGoBtn {
+  color: #ffffff;
+}
+.fBannerAckBtn {
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--ink-2);
+}
+.fLineOps {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.fCancelInlineBtn {
+  border: 0;
+  background: transparent;
+  padding: 0 2px;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 600;
+}
+.fCancelInlineBtn:hover {
+  color: var(--down);
+}
+.dFattenActBtn {
+  height: 38px;
+  padding: 0 13px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-1);
+  font-size: 13px;
+  font-weight: 600;
+}
+.dFattenActBtn.active {
+  background: var(--up-tint);
+  border-color: rgba(136, 214, 163, 0.45);
+  color: var(--up);
+}
+.dFattenInfo {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  padding: 0 4px;
+}
+
+/* My Lightweight Side Drawer */
+.myDrawerWrap {
+  position: fixed;
+  inset: 0;
+  z-index: 42;
+}
+.myDrawerScrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  backdrop-filter: blur(4px);
+}
+.myDrawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(86vw, 350px);
+  background: var(--bg-1);
+  border-left: 1px solid var(--line-2);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  box-shadow: -12px 0 36px rgba(0, 0, 0, 0.35);
+}
+.myDrawerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-1);
+}
+.myDrawerTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.myDrawerTitleWrap b {
+  font-size: 17px;
+  color: var(--ink-1);
+}
+.myIdentTag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+.myDrawerClose {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--pill);
+  color: var(--ink-2);
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.myQuickControls {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line-1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.myQuickRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.drawerPillBtn {
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--ink-1);
+  font-size: 12px;
+  font-weight: 600;
+}
+.drawerPillBtn.accent {
+  background: var(--accent-tint);
+  border-color: rgba(114, 216, 196, 0.4);
+  color: var(--accent);
+}
+.myMenuList {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.myMenuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  text-align: left;
+  transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
+}
+.myMenuItem:hover {
+  border-color: var(--accent);
+  background: var(--bg-2);
+}
+.myMenuText {
+  min-width: 0;
+}
+.myMenuText b {
+  display: block;
+  font-size: 14.5px;
+  color: var(--ink-1);
+}
+.myMenuText small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.myMenuRight {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-4);
+}
+.myMenuRight em {
+  font-style: normal;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--pill);
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.myMenuRight i {
+  font-style: normal;
+  font-size: 17px;
+  line-height: 1;
+}
+.myDrawerFoot {
+  margin-top: auto;
+  padding-top: 14px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+.myDrawerAccountHint {
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: var(--bg-sunken);
+  border: 1px dashed var(--line-2);
+  margin-bottom: 10px;
+}
+.myDrawerEnvLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-4);
+}
+.dotLive, .dotLocal {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+.dotLive { background: var(--accent); }
+.dotLocal { background: var(--ink-4); }
+
+/* Dedicated Full-Page My SubView (History / Blocks / Backup) */
+body.subPageMode main {
+  grid-template-columns: minmax(0, 1fr);
+}
+body.subPageMode main > :not(#mySubView):not(#favToast) {
+  display: none !important;
+}
+body.subPageMode #mySubView {
+  grid-column: 1;
+  display: block;
+}
+.mySubView {
+  max-width: 1180px;
+  margin: 0 auto;
+  width: 100%;
+}
+.subPageTopBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-bottom: 12px;
+}
+.subPageTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink-1);
+  margin-right: auto;
+}
+.subPageSwitch {
+  display: inline-flex;
+  border-radius: 9px;
+  padding: 2px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  gap: 2px;
+}
+.spsBtn {
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 7px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.spsBtn.active {
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+.blockSubTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.bstBtn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--ink-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.bstBtn em {
+  font-style: normal;
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--pill);
+  color: var(--ink-3);
+}
+.bstBtn.active {
+  background: var(--accent-tint);
+  border-color: rgba(114, 216, 196, 0.45);
+  color: var(--accent);
+}
+.blockSearchRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 10px;
+}
+.blockSearchInputWrap {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.blockSearchInputWrap input {
+  width: 100%;
+  height: 34px;
+  padding: 0 30px 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-1);
+  font-size: 12.5px;
+}
+.blockSearchClear {
+  position: absolute;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--pill);
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.blockSearchMeta {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.blockBookInfo {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.blockBookLink {
+  font-weight: 700;
+  color: var(--ink-1);
+  text-decoration: none;
+}
+.blockBookLink:hover {
+  color: var(--accent);
+}
+.blockBookAuthor {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.blockPager {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.blockTagPickerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+.blockTagHint {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.bpReplaceOpt {
+  color: var(--down);
+}
+.bpReplaceWarn {
+  margin-bottom: 9px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--down-tint);
+  border: 1px solid rgba(235, 154, 146, 0.35);
+  font-size: 12px;
+  color: var(--down);
+}
+
+/* Fatten Goal & Block Tag Multi-Select Modals */
+.fattenModalCard {
+  max-width: 440px;
+}
+.blockTagModalCard {
+  max-width: 560px;
+  max-height: 86dvh;
+  display: flex;
+  flex-direction: column;
+}
+.fModalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.fModalHead h3 {
+  margin: 0;
+  font-size: 17px;
+  color: var(--ink-1);
+}
+.fModalBook {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-1);
+}
+.fModalStateTag {
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+.fModalModes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.fModeBtn {
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.fModeBtn.active {
+  background: var(--accent-tint);
+  border-color: rgba(114, 216, 196, 0.45);
+  color: var(--accent);
+}
+.fModalPane {
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line-1);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.fModalInputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.fModalInputRow input {
+  height: 32px;
+  padding: 0 9px;
+  border-radius: 7px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--ink-1);
+  font-size: 13px;
+}
+.fModalInputRow input[type="number"] {
+  width: 92px;
+}
+.fModalCheck {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.fModalDesc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+.fModalFoot {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.btSearchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.btSearchWrap input {
+  width: 100%;
+  height: 36px;
+  padding: 0 32px 0 11px;
+  border-radius: 9px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-1);
+  font-size: 13px;
+}
+.btSelBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.btClearSelBtn {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.btScrollArea {
+  flex: 1 1 auto;
+  min-height: 160px;
+  max-height: 48dvh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.btSecTitle {
+  margin: 8px 0 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.btGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.btOpt {
+  min-height: 34px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-2);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  text-align: left;
+  min-width: 0;
+}
+.btOpt span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.btOpt small, .btOpt i {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--ink-4);
+  flex: none;
+}
+.btOpt.active {
+  background: var(--down-tint);
+  border-color: rgba(235, 154, 146, 0.45);
+  color: var(--down);
+  font-weight: 600;
+}
+.btOpt.active small, .btOpt.active i {
+  color: var(--down);
+}
+
 html[data-theme="light"] .dPrimaryBtn { color: #ffffff; }
 html[data-theme="light"] .fattenAlertCnt { color: #ffffff; }
 html[data-theme="light"] .shelfDangerBtn.armed { color: #ffffff; }
@@ -4444,15 +5126,20 @@ html[data-theme="light"] .blockCard {
   .blockPanels, .backupGrid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 680px) {
-  body.detailMode .favToast { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  header .bar #themeBtn,
+  header .bar #appDlBtn { display: none !important; }
+  .myBtn { height: 27px; padding: 0 10px; font-size: 12px; }
+  body.detailMode .favToast,
+  body.subPageMode .favToast { bottom: calc(64px + env(safe-area-inset-bottom)); }
   .favToast { bottom: calc(64px + env(safe-area-inset-bottom)); }
   .dCard { padding: 13px; }
   .dHeroHead { grid-template-columns: 78px minmax(0, 1fr); gap: 11px; }
   .dCoverBox { width: 78px; }
   .dTitle { font-size: 17.5px; }
   .dPrimaryBtn { flex: 1 1 100%; }
-  .dSecBtn, .dFavBtn { flex: 1 1 auto; }
+  .dSecBtn, .dFavBtn, .dFattenActBtn { flex: 1 1 auto; }
   .dStatItem b { font-size: 17px; }
   .shelfItem { grid-template-columns: 60px minmax(0, 1fr); gap: 10px; padding: 12px; }
   .shelfItem .cover { width: 60px; }
+  .btGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

@@ -1,4 +1,4 @@
-import { isAndroidAppShell } from './reader.js?v=28';
+import { isAndroidAppShell } from './reader.js?v=29';
 
 const SHELF_KEY = 'touxian-shelf-v1';
 const NATIVE_MIGRATED_KEY = 'touxian-shelf-native-migrated-v1';
@@ -6,12 +6,28 @@ const NATIVE_MIGRATED_KEY = 'touxian-shelf-native-migrated-v1';
 export const DEFAULT_FATTEN_WORDS = 500000;
 export const MIN_FATTEN_WORDS = 50000;
 export const MAX_FATTEN_WORDS = 10000000;
-export const MAX_HISTORY = 30;
-const MAX_BLOCK_LIST = 200;
-const MAX_BACKUP_BYTES = 4 * 1024 * 1024;
+export const MAX_HISTORY = 50;
+export const MAX_BLOCKED_BOOKS = 500;
+export const MAX_BLOCK_LIST = 300;
+export const MAX_BACKUP_BYTES = 3900000;
 
 let memoryCache = null;
 let pendingMigrationNotice = null;
+let activeIdentity = 'guest';
+
+function cleanIdentity(id) {
+  const s = String(id || '').trim();
+  return s || 'guest';
+}
+
+export function getActiveIdentity() {
+  return activeIdentity;
+}
+
+export function setActiveIdentity(id) {
+  activeIdentity = cleanIdentity(id);
+  return activeIdentity;
+}
 
 function emptyShelf() {
   return {
@@ -20,6 +36,7 @@ function emptyShelf() {
     items: {},
     prefs: { defaultFattenWords: DEFAULT_FATTEN_WORDS },
     history: [],
+    histories: { guest: [] },
     blocks: { books: {}, tags: [], keywords: [] },
   };
 }
@@ -60,6 +77,23 @@ export function normalizeFattenWords(val, fallback = null) {
   const n = Number(val);
   if (!Number.isFinite(n) || n <= 0) return fallback;
   return Math.max(MIN_FATTEN_WORDS, Math.min(MAX_FATTEN_WORDS, Math.round(n)));
+}
+
+function normalizeFattenMode(mode) {
+  return mode === 'completed' || mode === 'date' ? mode : 'words';
+}
+
+function normalizeFattenDate(d) {
+  const s = String(d || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+}
+
+function utf8ByteLength(str) {
+  try {
+    return new TextEncoder().encode(String(str || '')).length;
+  } catch {
+    return String(str || '').length * 3;
+  }
 }
 
 function parseMs(s) {
@@ -105,29 +139,8 @@ function normalizeStrList(raw, limit = MAX_BLOCK_LIST) {
   return out;
 }
 
-function normalizeShelf(raw) {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return emptyShelf();
-  const srcItems = raw.items && typeof raw.items === 'object' && !Array.isArray(raw.items) ? raw.items : {};
-  const cleanItems = {};
-  for (const [k, item] of Object.entries(srcItems)) {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
-    const bid = String(item.id || k || '').trim();
-    if (!bid) continue;
-    const customTarget = item.fattenTargetWords != null ? normalizeFattenWords(item.fattenTargetWords, null) : null;
-    cleanItems[bid] = {
-      id: bid,
-      state: item.state === 'reading' || item.state === 'done' ? item.state : 'want',
-      fatten: Boolean(item.fatten),
-      fattenTargetWords: customTarget,
-      addedAt: item.addedAt || new Date().toISOString(),
-      updatedAt: item.updatedAt || item.addedAt || new Date().toISOString(),
-      snap: cleanSnap(item.snap),
-    };
-  }
-
-  const defaultFattenWords = normalizeFattenWords(raw.prefs?.defaultFattenWords, DEFAULT_FATTEN_WORDS);
-
-  const histRaw = Array.isArray(raw.history) ? raw.history : [];
+function normalizeHistoryList(histRaw) {
+  if (!Array.isArray(histRaw)) return [];
   const histById = new Map();
   for (const h of histRaw) {
     if (!h || typeof h !== 'object' || Array.isArray(h)) continue;
@@ -143,13 +156,74 @@ function normalizeShelf(raw) {
       });
     }
   }
-  const cleanHistory = [...histById.values()]
+  return [...histById.values()]
     .sort((a, b) => (parseMs(b.viewedAt) || 0) - (parseMs(a.viewedAt) || 0) || String(b.viewedAt).localeCompare(String(a.viewedAt)))
     .slice(0, MAX_HISTORY);
+}
+
+function mergeHistoryLists(baseList = [], incList = []) {
+  const histMap = new Map();
+  let added = 0;
+  for (const h of baseList) histMap.set(h.id, h);
+  for (const h of incList) {
+    const prev = histMap.get(h.id);
+    if (!prev) {
+      histMap.set(h.id, h);
+      added++;
+    } else if (laterIso(prev.viewedAt, h.viewedAt) === h.viewedAt && h.viewedAt !== prev.viewedAt) {
+      histMap.set(h.id, { id: h.id, viewedAt: h.viewedAt, snap: mergeSnap(prev.snap, h.snap) });
+    }
+  }
+  const merged = [...histMap.values()]
+    .sort((a, b) => (parseMs(b.viewedAt) || 0) - (parseMs(a.viewedAt) || 0) || String(b.viewedAt).localeCompare(String(a.viewedAt)))
+    .slice(0, MAX_HISTORY);
+  return { merged, added };
+}
+
+function normalizeShelf(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return emptyShelf();
+  const srcItems = raw.items && typeof raw.items === 'object' && !Array.isArray(raw.items) ? raw.items : {};
+  const cleanItems = {};
+  for (const [k, item] of Object.entries(srcItems)) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const bid = String(item.id || k || '').trim();
+    if (!bid) continue;
+    const customTarget = item.fattenTargetWords != null ? normalizeFattenWords(item.fattenTargetWords, null) : null;
+    cleanItems[bid] = {
+      id: bid,
+      state: item.state === 'reading' || item.state === 'done' ? item.state : 'want',
+      fatten: Boolean(item.fatten),
+      fattenMode: normalizeFattenMode(item.fattenMode),
+      fattenTargetWords: customTarget,
+      fattenTargetDate: normalizeFattenDate(item.fattenTargetDate),
+      fattenAckKey: String(item.fattenAckKey || '').trim(),
+      addedAt: item.addedAt || new Date().toISOString(),
+      updatedAt: item.updatedAt || item.addedAt || new Date().toISOString(),
+      snap: cleanSnap(item.snap),
+    };
+  }
+
+  const defaultFattenWords = normalizeFattenWords(raw.prefs?.defaultFattenWords, DEFAULT_FATTEN_WORDS);
+
+  const histories = {};
+  if (raw.histories && typeof raw.histories === 'object' && !Array.isArray(raw.histories)) {
+    for (const [ident, list] of Object.entries(raw.histories)) {
+      const cid = cleanIdentity(ident);
+      const normList = normalizeHistoryList(list);
+      histories[cid] = histories[cid] ? mergeHistoryLists(histories[cid], normList).merged : normList;
+    }
+  }
+  const legacyTopHistory = normalizeHistoryList(raw.history);
+  if (legacyTopHistory.length) {
+    histories.guest = histories.guest ? mergeHistoryLists(histories.guest, legacyTopHistory).merged : legacyTopHistory;
+  }
+  if (!histories.guest) histories.guest = [];
 
   const booksRaw = raw.blocks?.books && typeof raw.blocks.books === 'object' && !Array.isArray(raw.blocks.books) ? raw.blocks.books : {};
   const cleanBlockedBooks = {};
-  for (const [k, b] of Object.entries(booksRaw)) {
+  const bookEntries = Object.entries(booksRaw);
+  for (let i = 0; i < bookEntries.length && Object.keys(cleanBlockedBooks).length < MAX_BLOCKED_BOOKS; i++) {
+    const [k, b] = bookEntries[i];
     if (!b || typeof b !== 'object' || Array.isArray(b)) continue;
     const bid = String(b.id || k || '').trim();
     if (!bid) continue;
@@ -166,11 +240,12 @@ function normalizeShelf(raw) {
     updatedAt: String(raw.updatedAt || ''),
     items: cleanItems,
     prefs: { defaultFattenWords },
-    history: cleanHistory,
+    history: histories.guest,
+    histories,
     blocks: {
       books: cleanBlockedBooks,
-      tags: normalizeStrList(raw.blocks?.tags),
-      keywords: normalizeStrList(raw.blocks?.keywords),
+      tags: normalizeStrList(raw.blocks?.tags, MAX_BLOCK_LIST),
+      keywords: normalizeStrList(raw.blocks?.keywords, MAX_BLOCK_LIST),
     },
   };
 }
@@ -187,7 +262,7 @@ function mergeSnap(olderSnap = {}, newerSnap = {}) {
   return out;
 }
 
-export function mergeShelfStates(nativeRaw, legacyRaw) {
+export function mergeShelfStates(nativeRaw, legacyRaw, { historyTargetIdentity = null } = {}) {
   const nat = normalizeShelf(nativeRaw);
   const legState = normalizeShelf(legacyRaw);
   const items = { ...nat.items };
@@ -210,7 +285,10 @@ export function mergeShelfStates(nativeRaw, legacyRaw) {
         id: bid,
         state: leg.state,
         fatten: leg.fatten,
+        fattenMode: leg.fattenMode,
         fattenTargetWords: leg.fattenTargetWords ?? cur.fattenTargetWords ?? null,
+        fattenTargetDate: leg.fattenTargetDate || cur.fattenTargetDate || '',
+        fattenAckKey: leg.fattenAckKey || '',
         addedAt: nextAdded,
         updatedAt: leg.updatedAt,
         snap: mergeSnap(cur.snap, leg.snap),
@@ -219,14 +297,26 @@ export function mergeShelfStates(nativeRaw, legacyRaw) {
     } else {
       const mergedSnap = mergeSnap(leg.snap, cur.snap);
       const nextFatten = cur.fatten || (!cur.updatedAt && leg.fatten);
+      const nextMode = cur.fatten ? cur.fattenMode : (leg.fattenMode || cur.fattenMode);
       const nextTarget = cur.fattenTargetWords ?? leg.fattenTargetWords ?? null;
+      const nextDate = cur.fattenTargetDate || leg.fattenTargetDate || '';
+      const nextAck = cur.fattenAckKey || leg.fattenAckKey || '';
       const snapEnriched = JSON.stringify(mergedSnap) !== JSON.stringify(cur.snap || {});
-      const metaChanged = nextAdded !== cur.addedAt || nextFatten !== cur.fatten || nextTarget !== cur.fattenTargetWords;
+      const metaChanged =
+        nextAdded !== cur.addedAt ||
+        nextFatten !== cur.fatten ||
+        nextMode !== cur.fattenMode ||
+        nextTarget !== cur.fattenTargetWords ||
+        nextDate !== cur.fattenTargetDate ||
+        nextAck !== cur.fattenAckKey;
       if (snapEnriched || metaChanged) {
         items[bid] = {
           ...cur,
           fatten: nextFatten,
+          fattenMode: nextMode,
           fattenTargetWords: nextTarget,
+          fattenTargetDate: nextDate,
+          fattenAckKey: nextAck,
           addedAt: nextAdded,
           snap: mergedSnap,
         };
@@ -235,28 +325,35 @@ export function mergeShelfStates(nativeRaw, legacyRaw) {
     }
   }
 
-  // Merge history (union by id, newest viewedAt wins, top MAX_HISTORY)
-  const histMap = new Map();
+  // Merge histories
+  const mergedHistories = {};
+  for (const [k, v] of Object.entries(nat.histories || {})) {
+    mergedHistories[k] = [...v];
+  }
   let historyAdded = 0;
-  for (const h of nat.history) histMap.set(h.id, h);
-  for (const h of legState.history) {
-    const prev = histMap.get(h.id);
-    if (!prev) {
-      histMap.set(h.id, h);
-      historyAdded++;
-    } else if (laterIso(prev.viewedAt, h.viewedAt) === h.viewedAt && h.viewedAt !== prev.viewedAt) {
-      histMap.set(h.id, { id: h.id, viewedAt: h.viewedAt, snap: mergeSnap(prev.snap, h.snap) });
+
+  if (historyTargetIdentity) {
+    const tid = cleanIdentity(historyTargetIdentity);
+    const incList = legState.histories?.[tid]?.length
+      ? legState.histories[tid]
+      : (legState.histories?.guest || legState.history || []);
+    const res = mergeHistoryLists(mergedHistories[tid] || [], incList);
+    mergedHistories[tid] = res.merged;
+    historyAdded += res.added;
+  } else {
+    for (const [ident, incList] of Object.entries(legState.histories || {})) {
+      const res = mergeHistoryLists(mergedHistories[ident] || [], incList);
+      mergedHistories[ident] = res.merged;
+      historyAdded += res.added;
     }
   }
-  const mergedHistory = [...histMap.values()]
-    .sort((a, b) => (parseMs(b.viewedAt) || 0) - (parseMs(a.viewedAt) || 0))
-    .slice(0, MAX_HISTORY);
+  if (!mergedHistories.guest) mergedHistories.guest = [];
 
   // Merge blocks (union)
   const mergedBlockBooks = { ...nat.blocks.books };
   let blockBooksAdded = 0;
   for (const [bid, bk] of Object.entries(legState.blocks.books)) {
-    if (!mergedBlockBooks[bid]) {
+    if (!mergedBlockBooks[bid] && Object.keys(mergedBlockBooks).length < MAX_BLOCKED_BOOKS) {
       mergedBlockBooks[bid] = bk;
       blockBooksAdded++;
     }
@@ -302,7 +399,8 @@ export function mergeShelfStates(nativeRaw, legacyRaw) {
       updatedAt,
       items,
       prefs: { defaultFattenWords },
-      history: mergedHistory,
+      history: mergedHistories.guest,
+      histories: mergedHistories,
       blocks: {
         books: mergedBlockBooks,
         tags: [...tagSet],
@@ -378,9 +476,10 @@ function readAndHydrateShelf() {
   const nativeState = normalizeShelf(natRes.data);
   if (!isOriginMigrated()) {
     const localState = normalizeShelf(readLocalJson());
+    const hasLocalHist = Object.values(localState.histories || {}).some((l) => l.length > 0);
     const hasLocal =
       Object.keys(localState.items).length > 0 ||
-      localState.history.length > 0 ||
+      hasLocalHist ||
       Object.keys(localState.blocks.books).length > 0 ||
       localState.blocks.tags.length > 0 ||
       localState.blocks.keywords.length > 0;
@@ -388,7 +487,7 @@ function readAndHydrateShelf() {
       const merged = mergeShelfStates(nativeState, localState);
       if (merged.changed) {
         const mergedJson = JSON.stringify(merged.state);
-        if (writeNativeVerified(bridge, mergedJson)) {
+        if (utf8ByteLength(mergedJson) <= MAX_BACKUP_BYTES && writeNativeVerified(bridge, mergedJson)) {
           try {
             localStorage.setItem(SHELF_KEY, mergedJson);
           } catch {}
@@ -427,10 +526,13 @@ function readAndHydrateShelf() {
 function writeShelfState(nextState) {
   const normalized = normalizeShelf(nextState);
   const json = JSON.stringify(normalized);
+  if (utf8ByteLength(json) > MAX_BACKUP_BYTES) {
+    return { ok: false, error: '本机存储体积超出安全上限，未能写入（原数据已完整保留）' };
+  }
   const bridge = nativeBridge();
   if (bridge) {
     if (!writeNativeVerified(bridge, json)) {
-      return { ok: false, error: '应用本机存储写入失败，请重试' };
+      return { ok: false, error: '应用本机存储写入失败，请重试（原数据已保留）' };
     }
     try {
       localStorage.setItem(SHELF_KEY, json);
@@ -531,7 +633,10 @@ export function saveBookToShelf(book, obsDate = '') {
     id: bid,
     state: existing?.state || 'want',
     fatten: Boolean(existing?.fatten),
+    fattenMode: normalizeFattenMode(existing?.fattenMode),
     fattenTargetWords: existing?.fattenTargetWords ?? null,
+    fattenTargetDate: existing?.fattenTargetDate || '',
+    fattenAckKey: existing?.fattenAckKey || '',
     addedAt: existing?.addedAt || nowIso,
     updatedAt: nowIso,
     snap: buildSnapshot(book, obsDate, existing?.snap),
@@ -620,7 +725,9 @@ export function setShelfItemFatten(id, enabled, targetWords = undefined) {
   const nextItem = {
     ...existing,
     fatten: Boolean(enabled),
+    fattenMode: existing.fattenMode || 'words',
     fattenTargetWords: nextTarget,
+    fattenAckKey: enabled ? existing.fattenAckKey : '',
     updatedAt: nowIso,
   };
   const writeRes = writeShelfState({
@@ -629,6 +736,102 @@ export function setShelfItemFatten(id, enabled, targetWords = undefined) {
     items: { ...current.items, [bid]: nextItem },
   });
   return writeRes.ok ? { ok: true, item: nextItem } : writeRes;
+}
+
+export function configureBookFatten(bookOrId, opts = {}, obsDate = '') {
+  const isObj = bookOrId && typeof bookOrId === 'object';
+  const bid = String(isObj ? bookOrId.id : bookOrId || '').trim();
+  if (!bid) return { ok: false, error: '无效书号' };
+
+  const current = loadShelf({ forceReload: true });
+  const existing = current.items[bid];
+  const fattenMode = normalizeFattenMode(opts.mode);
+
+  let nextWords = existing?.fattenTargetWords ?? null;
+  let nextDate = existing?.fattenTargetDate || '';
+
+  if (fattenMode === 'words') {
+    if (opts.targetWords === null) {
+      nextWords = null;
+    } else if (opts.targetWords !== undefined) {
+      const cleanT = normalizeFattenWords(opts.targetWords, null);
+      if (!cleanT) return { ok: false, error: '目标字数须在 5 万～1000 万字之间' };
+      nextWords = cleanT;
+    }
+  } else if (fattenMode === 'date') {
+    const cleanD = normalizeFattenDate(opts.targetDate);
+    if (!cleanD) return { ok: false, error: '请选择有效的养肥到期日期' };
+    nextDate = cleanD;
+  }
+
+  const nowIso = new Date().toISOString();
+  const nextItem = {
+    id: bid,
+    state: existing?.state || 'want', // Preserve existing want/reading/done state cleanly
+    fatten: true,
+    fattenMode,
+    fattenTargetWords: nextWords,
+    fattenTargetDate: nextDate,
+    fattenAckKey: '',
+    addedAt: existing?.addedAt || nowIso,
+    updatedAt: nowIso,
+    snap: isObj ? buildSnapshot(bookOrId, obsDate, existing?.snap) : cleanSnap(existing?.snap),
+  };
+
+  let nextPrefs = current.prefs;
+  if (fattenMode === 'words' && opts.rememberDefault && nextWords) {
+    nextPrefs = { ...current.prefs, defaultFattenWords: nextWords };
+  }
+
+  const writeRes = writeShelfState({
+    ...current,
+    updatedAt: nowIso,
+    prefs: nextPrefs,
+    items: { ...current.items, [bid]: nextItem },
+  });
+  return writeRes.ok ? { ok: true, added: !existing, item: nextItem } : writeRes;
+}
+
+export function cancelBookFatten(id) {
+  const bid = String(id || '').trim();
+  if (!bid) return { ok: false, error: '无效书号' };
+  const current = loadShelf({ forceReload: true });
+  const existing = current.items[bid];
+  if (!existing) return { ok: true };
+  const nowIso = new Date().toISOString();
+  const nextItem = {
+    ...existing,
+    fatten: false,
+    fattenAckKey: '',
+    updatedAt: nowIso,
+  };
+  const writeRes = writeShelfState({
+    ...current,
+    updatedAt: nowIso,
+    items: { ...current.items, [bid]: nextItem },
+  });
+  return writeRes.ok ? { ok: true, item: nextItem } : writeRes;
+}
+
+export function acknowledgeFattenReady(ackMap) {
+  if (!ackMap || (typeof ackMap !== 'object' && !(ackMap instanceof Map))) return { ok: true, count: 0 };
+  const entries = ackMap instanceof Map ? [...ackMap.entries()] : Object.entries(ackMap);
+  if (!entries.length) return { ok: true, count: 0 };
+  const current = loadShelf({ forceReload: true });
+  let count = 0;
+  const nextItems = { ...current.items };
+  for (const [bid, evKey] of entries) {
+    const it = nextItems[bid];
+    if (!it || !evKey || it.fattenAckKey === evKey) continue;
+    nextItems[bid] = { ...it, fattenAckKey: String(evKey) };
+    count++;
+  }
+  if (!count) return { ok: true, count: 0 };
+  const writeRes = writeShelfState({
+    ...current,
+    items: nextItems,
+  });
+  return writeRes.ok ? { ok: true, count } : writeRes;
 }
 
 function fmtWanWords(n) {
@@ -640,9 +843,29 @@ function fmtWanWords(n) {
   return `${Math.round(n)} 字`;
 }
 
-export function evaluateFattenAlerts(item, liveBook = null, refNowSec = Math.floor(Date.now() / 1000), defaultTarget = getDefaultFattenWords()) {
+export function evaluateFattenAlerts(
+  item,
+  liveBook = null,
+  refNowSec = Math.floor(Date.now() / 1000),
+  defaultTarget = getDefaultFattenWords(),
+  todayStr = ''
+) {
   if (!item?.fatten) {
-    return { active: false, alerts: [], hasAlert: false, targetWords: defaultTarget || DEFAULT_FATTEN_WORDS, currentWords: null, progressPct: 0 };
+    return {
+      active: false,
+      mode: 'words',
+      isReady: false,
+      isUnackedReady: false,
+      eventKey: '',
+      alerts: [],
+      warnBadges: [],
+      hasAlert: false,
+      targetWords: defaultTarget || DEFAULT_FATTEN_WORDS,
+      targetDate: '',
+      targetDesc: '',
+      currentWords: null,
+      progressPct: 0,
+    };
   }
   const snap = item.snap || {};
   const words = Number.isFinite(liveBook?.words) ? liveBook.words : (Number.isFinite(snap.words) ? snap.words : null);
@@ -650,28 +873,73 @@ export function evaluateFattenAlerts(item, liveBook = null, refNowSec = Math.flo
   const lastUpdate = Number.isFinite(liveBook?.lastUpdate) && liveBook.lastUpdate > 946684800
     ? liveBook.lastUpdate
     : (Number.isFinite(snap.lastUpdate) && snap.lastUpdate > 946684800 ? snap.lastUpdate : null);
+
+  const mode = normalizeFattenMode(item.fattenMode);
   const targetWords = item.fattenTargetWords || defaultTarget || DEFAULT_FATTEN_WORDS;
+  const targetDate = normalizeFattenDate(item.fattenTargetDate);
   const progressPct = Number.isFinite(words) && targetWords > 0 ? Math.min(100, Math.round((words / targetWords) * 100)) : 0;
 
   const alerts = [];
-  if (Number.isFinite(words) && words >= targetWords) {
-    alerts.push({ kind: 'words_ready', tone: 'up', label: `已达 ${fmtWanWords(words)}（目标 ${fmtWanWords(targetWords)}）` });
-  }
-  if (status === '已完结') {
-    alerts.push({ kind: 'completed', tone: 'accent', label: '已完结 · 可开宰' });
-  }
-  if (status === '连载中' && Number.isFinite(lastUpdate)) {
-    const idleDays = Math.floor((refNowSec - lastUpdate) / 86400);
-    if (idleDays > 10) {
-      alerts.push({ kind: 'stalled', tone: 'warn', label: `停更 ${idleDays} 天` });
+  const warnBadges = [];
+  let isReady = false;
+  let eventKey = '';
+  let targetDesc = '';
+
+  if (mode === 'completed') {
+    targetDesc = '等完结';
+    if (status === '已完结') {
+      isReady = true;
+      eventKey = 'completed:done';
+      alerts.push({ kind: 'completed', tone: 'accent', label: '已完结 · 可开宰' });
+    }
+  } else if (mode === 'date') {
+    targetDesc = targetDate ? `养至 ${targetDate.slice(5)}` : '按日期养肥';
+    if (targetDate && todayStr && todayStr >= targetDate) {
+      isReady = true;
+      eventKey = `date:${targetDate}`;
+      alerts.push({ kind: 'date_ready', tone: 'up', label: `已到期（${targetDate.slice(5)}）` });
+    } else if (status === '已完结') {
+      // User confirmed: completed triggers ready alert even before target date
+      isReady = true;
+      eventKey = `date_done:${targetDate}`;
+      alerts.push({ kind: 'completed', tone: 'accent', label: '已完结 · 可开宰' });
+    }
+  } else {
+    targetDesc = `目标 ${fmtWanWords(targetWords)}`;
+    if (Number.isFinite(words) && words >= targetWords) {
+      isReady = true;
+      eventKey = `words:${targetWords}`;
+      alerts.push({ kind: 'words_ready', tone: 'up', label: `已达 ${fmtWanWords(words)}（目标 ${fmtWanWords(targetWords)}）` });
+    } else if (status === '已完结') {
+      // User confirmed: completed triggers ready alert even before target words
+      isReady = true;
+      eventKey = `words_done:${targetWords}`;
+      alerts.push({ kind: 'completed', tone: 'accent', label: `已完结 · 可开宰（${fmtWanWords(words) || '完本'}）` });
     }
   }
 
+  // Only mark stalled when known to be serializing and valid lastUpdate timestamp > 10d old; missing obs never triggers stall
+  if (status === '连载中' && Number.isFinite(lastUpdate) && lastUpdate > 946684800) {
+    const idleDays = Math.floor((refNowSec - lastUpdate) / 86400);
+    if (idleDays > 10) {
+      warnBadges.push({ kind: 'stalled', tone: 'warn', label: `停更 ${idleDays} 天` });
+    }
+  }
+
+  const isUnackedReady = Boolean(isReady && eventKey && item.fattenAckKey !== eventKey);
+
   return {
     active: true,
+    mode,
+    isReady,
+    isUnackedReady,
+    eventKey,
     alerts,
-    hasAlert: alerts.length > 0,
+    warnBadges,
+    hasAlert: isReady,
     targetWords,
+    targetDate,
+    targetDesc,
     currentWords: words,
     progressPct,
   };
@@ -706,22 +974,25 @@ export function refreshShelfSnapshots(lookupFn, obsDate = '') {
   }
 }
 
-// --- History (30-book Footprint) ---
-export function listHistoryItems() {
-  return [...(loadShelf().history || [])];
+// --- History (50-book Footprint partitioned by local identity) ---
+export function listHistoryItems(identity = activeIdentity) {
+  const cid = cleanIdentity(identity);
+  const shelf = loadShelf();
+  return [...(shelf.histories?.[cid] || [])];
 }
 
-export function getHistoryItem(id) {
+export function getHistoryItem(id, identity = activeIdentity) {
   const bid = String(id || '').trim();
   if (!bid) return null;
-  return (loadShelf().history || []).find((h) => h.id === bid) || null;
+  return listHistoryItems(identity).find((h) => h.id === bid) || null;
 }
 
-export function recordHistoryBook(book, obsDate = '') {
+export function recordHistoryBook(book, obsDate = '', identity = activeIdentity) {
   const bid = String(book?.id || '').trim();
   if (!bid || !book?.title) return { ok: false };
+  const cid = cleanIdentity(identity);
   const current = loadShelf({ forceReload: true });
-  const hist = current.history || [];
+  const hist = current.histories?.[cid] || [];
   const existing = hist.find((h) => h.id === bid);
   const nowMs = Date.now();
   if (hist[0]?.id === bid && (nowMs - (parseMs(hist[0].viewedAt) || 0)) < 5000 && hist[0].snap?.title === String(book.title || '').trim()) {
@@ -734,33 +1005,43 @@ export function recordHistoryBook(book, obsDate = '') {
     snap: buildSnapshot(book, obsDate, existing?.snap),
   };
   const nextHist = [nextEntry, ...hist.filter((h) => h.id !== bid)].slice(0, MAX_HISTORY);
+  const nextHistories = { ...(current.histories || {}), [cid]: nextHist };
   return writeShelfState({
     ...current,
     updatedAt: nowIso,
-    history: nextHist,
+    history: nextHistories.guest || [],
+    histories: nextHistories,
   });
 }
 
-export function removeHistoryBook(id) {
+export function removeHistoryBook(id, identity = activeIdentity) {
   const bid = String(id || '').trim();
   if (!bid) return { ok: false, error: '无效书号' };
+  const cid = cleanIdentity(identity);
   const current = loadShelf({ forceReload: true });
-  const nextHist = (current.history || []).filter((h) => h.id !== bid);
-  if (nextHist.length === (current.history || []).length) return { ok: true };
+  const hist = current.histories?.[cid] || [];
+  const nextHist = hist.filter((h) => h.id !== bid);
+  if (nextHist.length === hist.length) return { ok: true };
+  const nextHistories = { ...(current.histories || {}), [cid]: nextHist };
   return writeShelfState({
     ...current,
     updatedAt: new Date().toISOString(),
-    history: nextHist,
+    history: nextHistories.guest || [],
+    histories: nextHistories,
   });
 }
 
-export function clearHistoryBooks() {
+export function clearHistoryBooks(identity = activeIdentity) {
+  const cid = cleanIdentity(identity);
   const current = loadShelf({ forceReload: true });
-  if (!current.history?.length) return { ok: true };
+  const hist = current.histories?.[cid] || [];
+  if (!hist.length) return { ok: true };
+  const nextHistories = { ...(current.histories || {}), [cid]: [] };
   return writeShelfState({
     ...current,
     updatedAt: new Date().toISOString(),
-    history: [],
+    history: nextHistories.guest || [],
+    histories: nextHistories,
   });
 }
 
@@ -793,14 +1074,18 @@ export function blockBook(book) {
   const bid = String(book?.id || '').trim();
   if (!bid) return { ok: false, error: '无效书号' };
   const current = loadShelf({ forceReload: true });
+  const curBooks = current.blocks?.books || {};
+  if (!curBooks[bid] && Object.keys(curBooks).length >= MAX_BLOCKED_BOOKS) {
+    return { ok: false, error: `单书屏蔽最多保留 ${MAX_BLOCKED_BOOKS} 本` };
+  }
   const nowIso = new Date().toISOString();
   const nextBooks = {
-    ...(current.blocks?.books || {}),
+    ...curBooks,
     [bid]: {
       id: bid,
       title: String(book?.title || `作品 ${bid}`).trim(),
       author: String(book?.author || '').trim(),
-      addedAt: nowIso,
+      addedAt: curBooks[bid]?.addedAt || nowIso,
     },
   };
   return writeShelfState({
@@ -836,6 +1121,20 @@ export function addBlockedTag(tag) {
     updatedAt: new Date().toISOString(),
     blocks: { ...current.blocks, tags: [clean, ...tags] },
   });
+}
+
+export function setBlockedTagsBatch(tagsArray) {
+  const cleanTags = normalizeStrList(tagsArray, MAX_BLOCK_LIST);
+  if (Array.isArray(tagsArray) && tagsArray.length > MAX_BLOCK_LIST) {
+    return { ok: false, error: `最多屏蔽 ${MAX_BLOCK_LIST} 个标签` };
+  }
+  const current = loadShelf({ forceReload: true });
+  const writeRes = writeShelfState({
+    ...current,
+    updatedAt: new Date().toISOString(),
+    blocks: { ...current.blocks, tags: cleanTags },
+  });
+  return writeRes.ok ? { ok: true, tags: cleanTags } : writeRes;
 }
 
 export function removeBlockedTag(tag) {
@@ -927,46 +1226,48 @@ export function matchBookBlock(book, tagsList = null) {
   return { blocked: false };
 }
 
-// --- JSON Backup Export / Validation / Merge Preview / Import ---
+// --- Backup Export / Validation / Merge Preview / Restore ---
 export function exportBackupPayload() {
   return {
     format: 'touxian-ta-backup',
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
+    identity: activeIdentity,
     data: loadShelf({ forceReload: true }),
   };
 }
 
 export function parseAndValidateBackup(rawText) {
   if (typeof rawText !== 'string' || !rawText.trim()) {
-    return { ok: false, error: '请先选择备份文件或粘贴 JSON 内容' };
+    return { ok: false, error: '请先粘贴备份内容或选择备份文件' };
   }
-  if (rawText.length > MAX_BACKUP_BYTES) {
-    return { ok: false, error: '备份内容过大（超过 4 MB 上限）' };
+  if (utf8ByteLength(rawText) > MAX_BACKUP_BYTES) {
+    return { ok: false, error: '备份内容超过本机存储上限（约 3.7 MB），已拒绝写入以保护现有数据' };
   }
   let parsed;
   try {
     parsed = JSON.parse(rawText);
   } catch {
-    return { ok: false, error: 'JSON 格式解析失败，请检查是否完整复制' };
+    return { ok: false, error: '备份内容格式无法识别，请检查是否完整复制' };
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return { ok: false, error: '无效备份结构：顶层必须为 JSON 对象' };
+    return { ok: false, error: '备份内容格式不正确，未能识别有效书篓结构' };
   }
 
   let body = parsed;
   if (parsed.format === 'touxian-ta-backup') {
     if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
-      return { ok: false, error: '备份文件缺少有效的 data 字段' };
+      return { ok: false, error: '备份内容缺少有效的数据正文，无法恢复' };
     }
     body = parsed.data;
   } else {
     const hasSection =
       (parsed.items && typeof parsed.items === 'object' && !Array.isArray(parsed.items)) ||
       Array.isArray(parsed.history) ||
+      (parsed.histories && typeof parsed.histories === 'object' && !Array.isArray(parsed.histories)) ||
       (parsed.blocks && typeof parsed.blocks === 'object' && !Array.isArray(parsed.blocks));
     if (!hasSection) {
-      return { ok: false, error: '未识别到偷闲獭书篓备份字段（缺少 items / history / blocks）' };
+      return { ok: false, error: '未识别到偷闲獭书篓备份数据，请确认内容来源正确' };
     }
   }
 
@@ -979,13 +1280,17 @@ export function parseAndValidateBackup(rawText) {
     warnings.push(`已跳过 ${skippedItems} 条格式异常的书篓记录`);
   }
 
+  const incomingHist = normalized.histories?.[activeIdentity]?.length
+    ? normalized.histories[activeIdentity]
+    : (normalized.histories?.guest || normalized.history || []);
+
   return {
     ok: true,
     normalized,
     warnings,
     stats: {
       items: validItemCount,
-      history: normalized.history.length,
+      history: incomingHist.length,
       blockBooks: Object.keys(normalized.blocks.books).length,
       blockTags: normalized.blocks.tags.length,
       blockKeywords: normalized.blocks.keywords.length,
@@ -997,7 +1302,7 @@ export function parseAndValidateBackup(rawText) {
 
 export function buildBackupMergePreview(incomingNormalized) {
   const current = loadShelf({ forceReload: true });
-  const merged = mergeShelfStates(current, incomingNormalized);
+  const merged = mergeShelfStates(current, incomingNormalized, { historyTargetIdentity: activeIdentity });
   const curItems = current.items || {};
   const incItems = incomingNormalized.items || {};
   let kept = 0;
@@ -1018,7 +1323,7 @@ export function buildBackupMergePreview(incomingNormalized) {
     },
     history: {
       added: merged.historyAdded,
-      mergedTotal: merged.state.history.length,
+      mergedTotal: (merged.state.histories?.[activeIdentity] || []).length,
     },
     blocks: {
       booksAdded: merged.blockBooksAdded,
@@ -1041,9 +1346,22 @@ export function buildBackupMergePreview(incomingNormalized) {
 
 export function applyBackupImport(incomingNormalized, { mode = 'merge' } = {}) {
   const current = loadShelf({ forceReload: true });
-  const nextState = mode === 'replace'
-    ? { ...normalizeShelf(incomingNormalized), updatedAt: new Date().toISOString() }
-    : mergeShelfStates(current, incomingNormalized).state;
+  let nextState;
+  if (mode === 'replace') {
+    const cleanInc = normalizeShelf(incomingNormalized);
+    const incTargetHist = cleanInc.histories?.[activeIdentity]?.length
+      ? cleanInc.histories[activeIdentity]
+      : (cleanInc.histories?.guest || cleanInc.history || []);
+    const nextHistories = { ...(current.histories || {}), [activeIdentity]: incTargetHist };
+    nextState = {
+      ...cleanInc,
+      updatedAt: new Date().toISOString(),
+      history: nextHistories.guest || [],
+      histories: nextHistories,
+    };
+  } else {
+    nextState = mergeShelfStates(current, incomingNormalized, { historyTargetIdentity: activeIdentity }).state;
+  }
   const writeRes = writeShelfState(nextState);
   if (!writeRes.ok) return writeRes;
   return { ok: true, state: memoryCache };

@@ -1,5 +1,5 @@
-import { fetchCached, mobilePlatform, appLink, ageDays, dayString } from './reader.js?v=28';
-import { getTrend, shortDelta, deltaClass, formatPct, dayLabel, renderRankBadges, renderTrendPanel, windowMetric, calendarDayGap } from './daily.js?v=28';
+import { fetchCached, mobilePlatform, appLink, ageDays, dayString } from './reader.js?v=29';
+import { getTrend, shortDelta, deltaClass, formatPct, dayLabel, renderRankBadges, renderTrendPanel, windowMetric, calendarDayGap } from './daily.js?v=29';
 
 const nf = new Intl.NumberFormat('zh-CN');
 const wanNf = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 1 });
@@ -523,6 +523,7 @@ export function renderDetailMarkup(ctx) {
     startDate,
     stackDepth = 0,
     hasInSitePrev = false,
+    customBackLabel = '',
     coreReady = false,
     coreFailed = false,
     shardLoading = false,
@@ -536,7 +537,7 @@ export function renderDetailMarkup(ctx) {
     trendRange = 7,
   } = ctx;
 
-  const backLabel = stackDepth > 0 ? '← 返回上一本' : hasInSitePrev ? '← 返回列表' : '← 去搜作品';
+  const backLabel = stackDepth > 0 ? '← 返回上一本' : (customBackLabel || (hasInSitePrev ? '← 返回列表' : '← 去搜作品'));
   const showSearchLink = stackDepth > 0 && !hasInSitePrev;
 
   if (!book) {
@@ -688,6 +689,7 @@ export function renderDetailMarkup(ctx) {
           <a class="dPrimaryBtn dReadPrimary" id="detailReadPrimary" data-kind="${readAct.primary.kind}" data-book-id="${esc(book.id)}" data-book-title="${esc(book.title)}" href="${esc(readAct.primary.href)}"${readAct.primary.kind === 'web' ? ' target="_blank" rel="noopener"' : ''}>${esc(readAct.primary.label)}</a>
           ${readAct.secondary ? `<a class="dSecBtn" href="${esc(readAct.secondary.href)}" target="_blank" rel="noopener">${esc(readAct.secondary.label)}</a>` : ''}
           <button type="button" class="dFavBtn${saved ? ' active' : ''}" id="detailFavBtn" aria-pressed="${saved}">${saved ? '★ 已加入书篓' : '☆ 加入书篓'}</button>
+          <button type="button" class="dFattenActBtn${shelfItem?.fatten ? ' active' : ''}" id="detailFattenBtn" aria-pressed="${Boolean(shelfItem?.fatten)}">${shelfItem?.fatten ? '🌱 养肥中（改目标）' : '🌱 养肥'}</button>
           <button type="button" class="dBlockBtn${isSingleBookBlocked ? ' active' : ''}" id="detailBlockBtn" aria-pressed="${isSingleBookBlocked}" title="仅屏蔽此单书，不影响同名作者其他作品">${isSingleBookBlocked ? '已屏蔽此书' : '屏蔽此书'}</button>
         </div>
         ${saved && shelfItem ? `<div class="dShelfControls">
@@ -696,8 +698,10 @@ export function renderDetailMarkup(ctx) {
               `<button type="button" class="ssBtn${shelfItem.state === k ? ' active' : ''}" data-detail-state="${k}" aria-pressed="${shelfItem.state === k}">${lbl}</button>`
             ).join('')}
           </div>
-          <button type="button" class="shelfFattenBtn${shelfItem.fatten ? ' active' : ''}" id="detailFattenBtn" aria-pressed="${Boolean(shelfItem.fatten)}">${shelfItem.fatten ? '🌱 养肥中' : '养肥'}</button>
+          ${shelfItem.fatten ? `<span class="dFattenInfo">${esc(fattenEval?.targetDesc || '养肥中')}</span>` : ''}
           ${shelfItem.fatten && fattenEval?.alerts?.length ? fattenEval.alerts.map((a) => `<span class="fAlertPill ${esc(a.tone)}">${esc(a.label)}</span>`).join('') : ''}
+          ${shelfItem.fatten && fattenEval?.warnBadges?.length ? fattenEval.warnBadges.map((w) => `<span class="fAlertPill ${esc(w.tone)}">${esc(w.label)}</span>`).join('') : ''}
+          ${shelfItem.fatten ? '<button type="button" class="fCancelInlineBtn" id="detailCancelFattenBtn">取消养肥</button>' : ''}
         </div>` : ''}
         ${blockMatch?.blocked && !isSingleBookBlocked ? `<div class="dBlockNotice">当前作品命中你的屏蔽规则：<strong>${esc(blockMatch.label)}</strong></div>` : ''}
         <div class="dToast" id="detailToast" role="status"${toastMsg ? '' : ' hidden'}>${esc(toastMsg)}</div>
