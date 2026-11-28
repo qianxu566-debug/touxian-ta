@@ -1,14 +1,30 @@
-import { fetchCached, mobilePlatform, appLink, ageDays, dayString } from './reader.js?v=27';
-import { getTrend, shortDelta, deltaClass, formatPct, dayLabel, renderRankBadges, renderTrendPanel, windowMetric } from './daily.js?v=27';
+import { fetchCached, mobilePlatform, appLink, ageDays, dayString } from './reader.js?v=28';
+import { getTrend, shortDelta, deltaClass, formatPct, dayLabel, renderRankBadges, renderTrendPanel, windowMetric, calendarDayGap } from './daily.js?v=28';
 
 const nf = new Intl.NumberFormat('zh-CN');
 const wanNf = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 1 });
 const shardCache = new Map();
+const BADGE_NAMES = { 2: '阅读榜', 1: '新书榜', 3: '巅峰榜', 4: '黑马榜', 5: '热搜榜', 6: '推荐榜' };
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const escAttr = (v) => esc(v);
 const fmtReaders = (n) => (!Number.isFinite(n) ? '暂无' : n >= 10000 ? `${wanNf.format(n / 10000)} 万` : nf.format(n));
 const fmtWords = (n) => (!Number.isFinite(n) ? '' : n >= 10000 ? `${wanNf.format(n / 10000)}万字` : `${nf.format(n)}字`);
 const fmtScoreCnt = (n) => (!Number.isFinite(n) || n <= 0 ? '' : `${n >= 10000 ? `${wanNf.format(n / 10000)}万` : nf.format(n)}人评价`);
+
+function shiftDateStr(dateStr, deltaDays) {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}
+
+function fmtCompactWordDiff(diff) {
+  if (!Number.isFinite(diff)) return '';
+  const sign = diff > 0 ? '+' : diff < 0 ? '-' : '';
+  const abs = Math.abs(diff);
+  if (abs >= 10000) return `${sign}${(abs / 10000).toFixed(1).replace(/\.0$/, '')}万`;
+  return `${sign}${nf.format(abs)}`;
+}
 
 export function bookBucketId(id) {
   const s = String(id ?? '').trim();
@@ -218,11 +234,288 @@ function renderMiniBookItem(entry, { showReason = true } = {}) {
   </a>`;
 }
 
+export function renderWordBarPanel(wordSeries, dates = [], rangeDays = 7) {
+  const validPts = Array.isArray(wordSeries) ? wordSeries.filter((p) => Array.isArray(p) && dates[p[0]] && Number.isFinite(p[1])) : [];
+  if (validPts.length < 2) {
+    return `<div class="wordBarEmpty">字数序列积累中（当前 ${validPts.length} 个实测日），满 2 个实测日自动绘制日更柱图。</div>`;
+  }
+  const effRange = rangeDays === 30 ? 30 : 7;
+  const lastDate = dates[validPts[validPts.length - 1][0]];
+  const cutoff = shiftDateStr(lastDate, -(effRange - 1));
+  let winPts = validPts.filter((p) => dates[p[0]] >= cutoff);
+  if (winPts.length < 2) {
+    winPts = validPts.slice(-Math.min(validPts.length, effRange));
+  }
+
+  const startDate = dates[winPts[0][0]];
+  const endDate = dates[winPts[winPts.length - 1][0]];
+  const spanDays = Math.min(35, calendarDayGap(startDate, endDate, winPts[0][0], winPts[winPts.length - 1][0]) + 1);
+  const obsByDate = new Map(winPts.map(([idx, w]) => [dates[idx], { idx, w }]));
+
+  const cols = [];
+  let prevObs = null;
+  for (let dOff = 0; dOff < spanDays; dOff++) {
+    const dStr = shiftDateStr(startDate, dOff);
+    const cur = obsByDate.get(dStr);
+    if (!cur) {
+      cols.push({
+        date: dStr,
+        mmdd: dStr.slice(5),
+        kind: 'gap',
+        totalWords: null,
+        delta: null,
+        gapDays: 0,
+        readout: `${dStr.slice(5)} · 字数缺测（保留空白，不做均摊）`,
+      });
+      continue;
+    }
+    if (!prevObs) {
+      cols.push({
+        date: dStr,
+        mmdd: dStr.slice(5),
+        kind: 'base',
+        totalWords: cur.w,
+        delta: null,
+        gapDays: 0,
+        readout: `${dStr.slice(5)} · 总字数 ${fmtWords(cur.w)} · 窗口基准日`,
+      });
+    } else {
+      const gap = calendarDayGap(prevObs.date, dStr, prevObs.idx, cur.idx);
+      const diff = cur.w - prevObs.w;
+      if (gap === 1) {
+        const diffDesc = diff > 0 ? `日更 +${nf.format(diff)} 字` : diff === 0 ? '当日未更（0 字）' : `修文 ${nf.format(diff)} 字`;
+        cols.push({
+          date: dStr,
+          mmdd: dStr.slice(5),
+          kind: 'daily',
+          totalWords: cur.w,
+          delta: diff,
+          gapDays: 1,
+          readout: `${dStr.slice(5)} · 总字数 ${fmtWords(cur.w)} · ${diffDesc}`,
+        });
+      } else {
+        const diffDesc = diff >= 0 ? `跨 ${gap} 日净增 +${nf.format(diff)} 字` : `跨 ${gap} 日净变动 ${nf.format(diff)} 字`;
+        cols.push({
+          date: dStr,
+          mmdd: dStr.slice(5),
+          kind: 'interval',
+          totalWords: cur.w,
+          delta: diff,
+          gapDays: gap,
+          readout: `${dStr.slice(5)} · 总字数 ${fmtWords(cur.w)} · ${diffDesc}`,
+        });
+      }
+    }
+    prevObs = { date: dStr, idx: cur.idx, w: cur.w };
+  }
+
+  const dailyPos = cols.filter((c) => c.kind === 'daily' && c.delta > 0).map((c) => c.delta);
+  const maxDaily = dailyPos.length ? Math.max(2000, ...dailyPos) : 4000;
+  const lastObsIdx = cols.map((c, i) => (c.kind !== 'gap' ? i : -1)).filter((i) => i >= 0).pop() ?? (cols.length - 1);
+  const hasInterval = cols.some((c) => c.kind === 'interval');
+  const hasGap = cols.some((c) => c.kind === 'gap');
+
+  const colsHtml = cols.map((c, i) => {
+    const isAct = i === lastObsIdx;
+    let body = '';
+    if (c.kind === 'gap') {
+      body = '<span class="wbGapSlot" title="当日缺测">缺测</span>';
+    } else if (c.kind === 'base') {
+      body = '<span class="wbBaseDot" title="窗口起始实测">起点</span>';
+    } else if (c.kind === 'interval') {
+      body = `<span class="wbIntervalPill" title="跨${c.gapDays}日实测区间净增（中间缺测不均摊）">跨${c.gapDays}日<br>${esc(fmtCompactWordDiff(c.delta))}</span>`;
+    } else if (c.delta > 0) {
+      const hPct = Math.max(14, Math.min(100, Math.round((c.delta / maxDaily) * 100)));
+      body = `<span class="wbValTop">${esc(fmtCompactWordDiff(c.delta))}</span><span class="wbBar" style="height:${hPct}%"></span>`;
+    } else if (c.delta === 0) {
+      body = '<span class="wbZeroBar" title="未更新">0</span>';
+    } else {
+      body = '<span class="wbNegBar" title="总字数回调">修文</span>';
+    }
+    return `<button type="button" class="wbCol ${c.kind}${isAct ? ' active' : ''}" data-wb-idx="${i}" title="${escAttr(c.readout)}">
+      <span class="wbTrack">${body}</span>
+      <span class="wbLbl">${esc(c.mmdd.slice(3))}</span>
+    </button>`;
+  }).join('');
+
+  return `<div class="wordBarPanel" data-wb-readouts="${escAttr(JSON.stringify(cols.map((c) => c.readout)))}">
+    <div class="wbHead">
+      <span class="wbTitle">日更字数柱</span>
+      <span class="wbMeta">${hasInterval || hasGap ? '仅相邻实测日绘日更柱 · 跨日缺测留空并标区间净增' : `近 ${spanDays} 天相邻实测日更`}</span>
+    </div>
+    <div class="wbReadout" aria-live="polite">${esc(cols[lastObsIdx]?.readout || '')}</div>
+    <div class="wbBars" style="grid-template-columns:repeat(${cols.length},minmax(0,1fr))">${colsHtml}</div>
+  </div>`;
+}
+
+export function bindWordBarChart(container) {
+  const panel = container?.querySelector?.('.wordBarPanel[data-wb-readouts]');
+  if (!panel || panel.dataset.bound === '1') return;
+  let readouts;
+  try {
+    readouts = JSON.parse(panel.dataset.wbReadouts || '[]');
+  } catch {
+    return;
+  }
+  panel.dataset.bound = '1';
+  const readoutEl = panel.querySelector('.wbReadout');
+  const cols = [...panel.querySelectorAll('.wbCol[data-wb-idx]')];
+  const activate = (idx) => {
+    const msg = readouts[idx];
+    if (!msg) return;
+    if (readoutEl) readoutEl.textContent = msg;
+    for (const c of cols) c.classList.toggle('active', Number(c.dataset.wbIdx) === idx);
+  };
+  for (const c of cols) {
+    c.addEventListener('click', () => activate(Number(c.dataset.wbIdx)));
+    c.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') activate(Number(c.dataset.wbIdx)); });
+  }
+}
+
+export function renderDailyDetailTable(series, wordSeries, dates = [], rangeDays = 7) {
+  const rPts = Array.isArray(series) ? series.filter((p) => Array.isArray(p) && dates[p[0]] && Number.isFinite(p[1])) : [];
+  const wPts = Array.isArray(wordSeries) ? wordSeries.filter((p) => Array.isArray(p) && dates[p[0]] && Number.isFinite(p[1])) : [];
+  if (!rPts.length && !wPts.length) return '';
+
+  const effRange = rangeDays === 30 ? 30 : 7;
+  const allDatesInPts = [...rPts.map((p) => dates[p[0]]), ...wPts.map((p) => dates[p[0]])].sort();
+  const endDate = allDatesInPts[allDatesInPts.length - 1];
+  const cutoff = shiftDateStr(endDate, -(effRange - 1));
+  const earliestObs = allDatesInPts[0];
+  const startDate = earliestObs > cutoff ? earliestObs : cutoff;
+  const spanDays = Math.min(35, calendarDayGap(startDate, endDate, 0, 1) + 1);
+
+  const rMap = new Map(rPts.map(([idx, val]) => [dates[idx], { idx, val }]));
+  const wMap = new Map(wPts.map(([idx, val]) => [dates[idx], { idx, val }]));
+
+  const rows = [];
+  let prevR = null;
+  let prevW = null;
+  let gapCount = 0;
+
+  // Initialize prevR / prevW right before startDate if earlier points exist
+  for (const [idx, val] of rPts) {
+    if (dates[idx] < startDate) prevR = { date: dates[idx], idx, val };
+  }
+  for (const [idx, val] of wPts) {
+    if (dates[idx] < startDate) prevW = { date: dates[idx], idx, val };
+  }
+
+  for (let dOff = 0; dOff < spanDays; dOff++) {
+    const dStr = shiftDateStr(startDate, dOff);
+    const rCur = rMap.get(dStr);
+    const wCur = wMap.get(dStr);
+    if (!rCur && !wCur) {
+      gapCount++;
+      rows.push({
+        date: dStr,
+        isGap: true,
+        readersTxt: '缺测',
+        rDeltaTxt: '—',
+        rDeltaCls: 'flat',
+        wordsTxt: '缺测',
+        wDeltaTxt: '—',
+      });
+      continue;
+    }
+
+    let rDeltaTxt = '首次';
+    let rDeltaCls = 'flat';
+    if (rCur) {
+      if (prevR) {
+        const rg = calendarDayGap(prevR.date, dStr, prevR.idx, rCur.idx);
+        const rd = rCur.val - prevR.val;
+        rDeltaCls = deltaClass(rd);
+        const sign = rd > 0 ? '+' : rd < 0 ? '-' : '';
+        const num = rd === 0 ? '0' : `${sign}${nf.format(Math.abs(rd))}`;
+        rDeltaTxt = rg > 1 ? `跨${rg}日 ${num}` : num;
+      }
+      prevR = { date: dStr, idx: rCur.idx, val: rCur.val };
+    } else {
+      gapCount++;
+      rDeltaTxt = '缺测';
+    }
+
+    let wDeltaTxt = '—';
+    if (wCur) {
+      if (prevW) {
+        const wg = calendarDayGap(prevW.date, dStr, prevW.idx, wCur.idx);
+        const wd = wCur.val - prevW.val;
+        if (wg > 1) {
+          wDeltaTxt = `跨${wg}日净增 ${fmtCompactWordDiff(wd)}`;
+        } else if (wd > 0) {
+          wDeltaTxt = `+${nf.format(wd)}`;
+        } else if (wd === 0) {
+          wDeltaTxt = '未更';
+        } else {
+          wDeltaTxt = nf.format(wd);
+        }
+      }
+      prevW = { date: dStr, idx: wCur.idx, val: wCur.val };
+    }
+
+    rows.push({
+      date: dStr,
+      isGap: !rCur,
+      readersTxt: rCur ? fmtReaders(rCur.val) : '缺测',
+      rDeltaTxt,
+      rDeltaCls,
+      wordsTxt: wCur ? fmtWords(wCur.val) : '—',
+      wDeltaTxt,
+    });
+  }
+
+  const descRows = rows.reverse();
+  const tbody = descRows.map((r) => `<tr class="${r.isGap ? 'isGapRow' : ''}">
+    <td>${esc(r.date.slice(5))}</td>
+    <td>${esc(r.readersTxt)}</td>
+    <td class="ddDelta ${esc(r.rDeltaCls)}">${esc(r.rDeltaTxt)}</td>
+    <td>${esc(r.wordsTxt)}</td>
+    <td>${esc(r.wDeltaTxt)}</td>
+  </tr>`).join('');
+
+  return `<details class="dDailyDetails">
+    <summary>逐日实测明细（共 ${descRows.length} 天${gapCount ? ` · 含 ${gapCount} 天缺测` : ''}）</summary>
+    <div class="dDailyWrap">
+      <table class="dDailyTable">
+        <thead><tr><th>日期</th><th>在读</th><th>较前变化</th><th>总字数</th><th>日更/区间</th></tr></thead>
+        <tbody>${tbody}</tbody>
+      </table>
+    </div>
+  </details>`;
+}
+
+function renderMilestonesTimeline(milestones) {
+  if (!Array.isArray(milestones) || !milestones.length) return '';
+  const rows = milestones.map(([dateStr, kind, grp, val, isBaseline]) => {
+    const grpName = BADGE_NAMES[grp] || `榜单${grp}`;
+    let text = '';
+    if (kind === 'enter') text = `首入 ${grpName} · 第 ${val} 名`;
+    else if (kind === 'peak') text = `${grpName} 冲至最高第 ${val} 名`;
+    else if (kind === 'drop') text = `暂别 ${grpName}（本轮累计在榜 ${val} 天）`;
+    else if (kind === 'cross10k') text = `实测在读突破 1 万（前日 ${fmtReaders(val)}）`;
+    else if (kind === 'obs') text = `开始追踪每日实测（在读 ${fmtReaders(val)}）`;
+    else text = `${grpName} 记录`;
+
+    const baseBadge = isBaseline ? '<span class="dMsBaseTag">本站首次记录</span>' : '';
+    return `<li class="dMsItem${isBaseline ? ' isBase' : ''}">
+      <span class="dMsDate">${esc(String(dateStr || '').slice(5))}</span>
+      <span class="dMsDot" aria-hidden="true"></span>
+      <span class="dMsBody">${esc(text)}${baseBadge}</span>
+    </li>`;
+  }).join('');
+  return `<ul class="dMilestoneList" id="detailMilestones" aria-label="上榜与收录里程碑">${rows}</ul>`;
+}
 export function renderDetailMarkup(ctx) {
   const {
     book,
     id,
     saved,
+    shelfItem = null,
+    fattenEval = null,
+    isLostCatalog = false,
+    blockMatch = null,
+    isSingleBookBlocked = false,
     coverUrl,
     trendObj,
     trendsPayload,
@@ -238,6 +531,9 @@ export function renderDetailMarkup(ctx) {
     similarRelaxed = false,
     introExpanded = false,
     toastMsg = '',
+    wordSeries = [],
+    milestones = [],
+    trendRange = 7,
   } = ctx;
 
   const backLabel = stackDepth > 0 ? '← 返回上一本' : hasInSitePrev ? '← 返回列表' : '← 去搜作品';
@@ -281,12 +577,16 @@ export function renderDetailMarkup(ctx) {
   const isLongIntro = introText.length > 150 || introParas.length > 3;
 
   const badgeHtml = renderRankBadges(radarPayload, book.id, book._badges || book.badges);
+  const milestoneHtml = renderMilestonesTimeline(milestones);
   const trendDataObj = trendObj
     ? { latestDate: trendsPayload?.latestDate, dates: trendsPayload?.dates || [], books: { [String(book.id)]: [trendObj.readers, trendObj.d1, trendObj.p1, trendObj.d7, trendObj.p7, trendObj.d30, trendObj.p30, trendObj.dw1, trendObj.series] } }
     : null;
+  const activeTrendRange = [1, 7, 30].includes(Number(trendRange)) ? Number(trendRange) : 7;
   const trendPanelHtml = trendDataObj
-    ? renderTrendPanel(trendDataObj, book.id, 7)
+    ? renderTrendPanel(trendDataObj, book.id, activeTrendRange)
     : '<div class="trendEmpty">暂无足够历史在读序列，次日采集后将自动生成折线。</div>';
+  const wordBarHtml = renderWordBarPanel(wordSeries, trendsPayload?.dates || [], activeTrendRange);
+  const dailyDetailsHtml = renderDailyDetailTable(trendObj?.series || [], wordSeries, trendsPayload?.dates || [], activeTrendRange);
 
   const hasPool = Array.isArray(pool) && pool.length > 0;
   const sameAuthor = (coreReady || (!coreFailed && hasPool))
@@ -363,6 +663,7 @@ export function renderDetailMarkup(ctx) {
               ${book.channel ? `<span class="dChTag">${esc(book.channel)}</span>` : ''}
             </div>
             <div class="dSpecs">${specs.map(esc).join(' · ')}</div>
+            ${isLostCatalog ? '<div class="dLostPill">当前全库未收录 · 展示本机留存档案</div>' : ''}
             <div class="dCatsLine">
               ${primList.map((c) => `<a class="dCatChip" data-category="${esc(c)}" href="?category=${encodeURIComponent(c)}">${esc(c)}</a>`).join('')}
               ${tags.slice(0, 8).map((t) => `<a class="dTagChip" data-tag="${esc(t)}" href="?tag=${encodeURIComponent(t)}">${esc(t)}</a>`).join('')}
@@ -387,7 +688,18 @@ export function renderDetailMarkup(ctx) {
           <a class="dPrimaryBtn dReadPrimary" id="detailReadPrimary" data-kind="${readAct.primary.kind}" data-book-id="${esc(book.id)}" data-book-title="${esc(book.title)}" href="${esc(readAct.primary.href)}"${readAct.primary.kind === 'web' ? ' target="_blank" rel="noopener"' : ''}>${esc(readAct.primary.label)}</a>
           ${readAct.secondary ? `<a class="dSecBtn" href="${esc(readAct.secondary.href)}" target="_blank" rel="noopener">${esc(readAct.secondary.label)}</a>` : ''}
           <button type="button" class="dFavBtn${saved ? ' active' : ''}" id="detailFavBtn" aria-pressed="${saved}">${saved ? '★ 已加入书篓' : '☆ 加入书篓'}</button>
+          <button type="button" class="dBlockBtn${isSingleBookBlocked ? ' active' : ''}" id="detailBlockBtn" aria-pressed="${isSingleBookBlocked}" title="仅屏蔽此单书，不影响同名作者其他作品">${isSingleBookBlocked ? '已屏蔽此书' : '屏蔽此书'}</button>
         </div>
+        ${saved && shelfItem ? `<div class="dShelfControls">
+          <div class="shelfStateSeg" role="group" aria-label="书篓阅读状态">
+            ${[['want', '想看'], ['reading', '在读'], ['done', '已看']].map(([k, lbl]) =>
+              `<button type="button" class="ssBtn${shelfItem.state === k ? ' active' : ''}" data-detail-state="${k}" aria-pressed="${shelfItem.state === k}">${lbl}</button>`
+            ).join('')}
+          </div>
+          <button type="button" class="shelfFattenBtn${shelfItem.fatten ? ' active' : ''}" id="detailFattenBtn" aria-pressed="${Boolean(shelfItem.fatten)}">${shelfItem.fatten ? '🌱 养肥中' : '养肥'}</button>
+          ${shelfItem.fatten && fattenEval?.alerts?.length ? fattenEval.alerts.map((a) => `<span class="fAlertPill ${esc(a.tone)}">${esc(a.label)}</span>`).join('') : ''}
+        </div>` : ''}
+        ${blockMatch?.blocked && !isSingleBookBlocked ? `<div class="dBlockNotice">当前作品命中你的屏蔽规则：<strong>${esc(blockMatch.label)}</strong></div>` : ''}
         <div class="dToast" id="detailToast" role="status"${toastMsg ? '' : ' hidden'}>${esc(toastMsg)}</div>
       </section>
 
@@ -408,13 +720,16 @@ export function renderDetailMarkup(ctx) {
           </div>
         </div>
         <div class="dTrendWrap" id="detailTrendWrap">${trendPanelHtml}</div>
+        <div class="dWordBarWrap" id="detailWordBarWrap">${wordBarHtml}</div>
+        ${dailyDetailsHtml}
       </section>
     </div>
 
     <aside class="dSideCol">
-      ${badgeHtml ? `<section class="dCard dSideCard" aria-label="上榜履历">
-        <div class="dSecHead"><h2>上榜履历</h2><span class="dSrcNote">本站观测期</span></div>
+      ${(badgeHtml || milestoneHtml) ? `<section class="dCard dSideCard" aria-label="上榜履历与里程碑">
+        <div class="dSecHead"><h2>上榜履历与里程碑</h2><span class="dSrcNote">本站观测期</span></div>
         ${badgeHtml}
+        ${milestoneHtml}
       </section>` : ''}
 
       <section class="dCard dSideCard" id="detailSimilar" aria-label="相近作品推荐">

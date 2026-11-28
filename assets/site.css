@@ -3197,6 +3197,571 @@ body.shelfMode .coverage {
 .shelfItem .cover {
   width: 68px;
 }
+.shelfSubTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.sstBtn {
+  height: 33px;
+  padding: 0 13px;
+  border-radius: 9px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sstBtn em {
+  font-style: normal;
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--pill);
+  color: var(--ink-3);
+}
+.sstBtn.active {
+  background: var(--accent-tint);
+  border-color: rgba(114, 216, 196, 0.45);
+  color: var(--accent);
+}
+.sstBtn.active em {
+  background: rgba(114, 216, 196, 0.18);
+  color: var(--accent);
+}
+.shelfFilterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.sfChip {
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sfChip em {
+  font-style: normal;
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.sfChip.active {
+  background: var(--accent-tint);
+  border-color: rgba(114, 216, 196, 0.45);
+  color: var(--accent);
+}
+.sfChip.active em { color: var(--accent); }
+.fattenAlertCnt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #15120c;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.fattenControlBar {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fattenSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.fSumTag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.fSumTag.up { background: var(--up-tint); color: var(--up); }
+.fSumTag.accent { background: var(--accent-tint); color: var(--accent); }
+.fSumTag.warn { background: var(--warn-tint); color: var(--warn); }
+.fSumMuted { font-size: 12px; color: var(--ink-3); }
+.fattenTargetRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 10px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.fTargetLbl b { color: var(--ink-1); }
+.fTargetPresets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.fPresetBtn {
+  height: 25px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.fPresetBtn.active {
+  background: var(--accent-tint);
+  border-color: rgba(114, 216, 196, 0.45);
+  color: var(--accent);
+}
+.fTargetCustomForm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.fTargetCustomForm input, .fBookTargetInput {
+  width: 62px;
+  height: 25px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-1);
+  font-size: 12px;
+}
+.fTargetCustomForm button, .fMiniSaveBtn, .fMiniResetBtn {
+  height: 25px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  color: var(--ink-1);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.shelfControlsLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0;
+}
+.shelfStateSeg {
+  display: inline-flex;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+}
+.ssBtn {
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.ssBtn + .ssBtn { border-left: 1px solid var(--line-1); }
+.ssBtn.active {
+  background: var(--accent-tint);
+  color: var(--accent);
+}
+.shelfFattenBtn {
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 7px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-3);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.shelfFattenBtn.active {
+  background: var(--up-tint);
+  border-color: rgba(136, 214, 163, 0.4);
+  color: var(--up);
+}
+.shelfFattenRow {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line-1);
+}
+.fattenAlertLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+.fAlertPill {
+  padding: 1px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.fAlertPill.up { background: var(--up-tint); color: var(--up); }
+.fAlertPill.accent { background: var(--accent-tint); color: var(--accent); }
+.fAlertPill.warn { background: var(--warn-tint); color: var(--warn); }
+.fProgText {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.fEditTargetBtn {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 2px;
+}
+.fBookTargetEdit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.shelfItem.isLost { border-color: rgba(223, 185, 114, 0.32); }
+.shelfLostPill, .dLostPill {
+  flex: none;
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: var(--warn-tint);
+  color: var(--warn);
+  font-size: 11px;
+  font-weight: 600;
+}
+.dLostPill { margin-top: 6px; }
+.shelfSubHeadBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.shelfSubHeadBar b { color: var(--ink-1); }
+.shelfDangerBtn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(235, 154, 146, 0.4);
+  background: var(--down-tint);
+  color: var(--down);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.shelfDangerBtn.armed {
+  background: var(--down);
+  color: #160c0c;
+}
+.histTime {
+  flex: none;
+  font-size: 11px;
+  color: var(--ink-4);
+}
+.shelfFavMiniBtn {
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.shelfFavMiniBtn.active {
+  background: var(--amber-tint);
+  border-color: rgba(235, 183, 130, 0.4);
+  color: var(--amber);
+}
+.blockScopeNote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 13px;
+  border-radius: 10px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.blockScopeNote strong { color: var(--ink-1); }
+.blockPanels, .backupGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.blockCard {
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  padding: 14px;
+  min-width: 0;
+}
+.blockCard h3 {
+  margin: 0 0 10px;
+  font-size: 14.5px;
+  color: var(--ink-1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.blockCard h3 em {
+  font-style: normal;
+  font-size: 11.5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--pill);
+  color: var(--ink-3);
+}
+.blockAddForm {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 9px;
+}
+.blockAddForm input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-1);
+  font-size: 12.5px;
+}
+.blockAddForm button {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(114, 216, 196, 0.45);
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.blockSuggestRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 9px;
+  font-size: 11.5px;
+  color: var(--ink-4);
+}
+.blockSuggestBtn {
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 5px;
+  border: 1px dashed var(--line-2);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.blockSuggestBtn:hover { color: var(--accent); border-color: var(--accent); }
+.blockChipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.blockChip {
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(235, 154, 146, 0.35);
+  background: var(--down-tint);
+  color: var(--down);
+  font-size: 12px;
+  font-weight: 600;
+}
+.blockChip.kw {
+  border-color: rgba(223, 185, 114, 0.4);
+  background: var(--warn-tint);
+  color: var(--warn);
+}
+.blockBookList {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.blockBookRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line-1);
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.blockBookRow b { color: var(--ink-1); }
+.blockEmptyHint { font-size: 12px; color: var(--ink-4); }
+.backupDesc {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+.backupFileRow { margin-bottom: 8px; }
+.backupFileBtn {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-1);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.backupFileBtn input { display: none; }
+.backupTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-1);
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  resize: vertical;
+  margin-bottom: 8px;
+}
+.backupCheckBtn { height: 32px; padding: 0 13px; }
+.backupMsg { margin-top: 8px; font-size: 12px; color: var(--accent); }
+.backupError {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--down-tint);
+  border: 1px solid rgba(235, 154, 146, 0.35);
+  color: var(--down);
+  font-size: 12px;
+}
+.backupPreviewCard {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg-sunken);
+  border: 1px solid rgba(114, 216, 196, 0.38);
+}
+.bpTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.bpWarn {
+  margin-bottom: 6px;
+  font-size: 11.5px;
+  color: var(--warn);
+}
+.bpDiffList {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.bpDiffList strong { color: var(--ink-1); }
+.bpModeRow {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.bpActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.blockedCountChip {
+  margin-left: 8px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 600;
+}
+.blockedCountChip:hover { color: var(--accent); border-color: var(--accent); }
+article.book.blockedRankCard {
+  padding: 10px 14px;
+  opacity: 0.72;
+  background: var(--bg-sunken);
+}
+.blockedRankRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 10px;
+}
+.blockedRankMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  min-width: 0;
+}
+.blockedRankTitle { color: var(--ink-2); font-weight: 600; }
+.blockedRankOps { display: flex; align-items: center; gap: 6px; }
+.rankFoldBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: var(--bg-sunken);
+  border: 1px dashed var(--line-2);
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
 .shelfBody {
   min-width: 0;
   display: flex;
@@ -3508,6 +4073,35 @@ body.detailMode #bookDetailView {
   border-color: rgba(235, 183, 130, 0.45);
   color: var(--amber);
 }
+.dBlockBtn {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-sunken);
+  color: var(--ink-3);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.dBlockBtn.active {
+  background: var(--down-tint);
+  border-color: rgba(235, 154, 146, 0.4);
+  color: var(--down);
+}
+.dShelfControls {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-1);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+.dBlockNotice {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--warn);
+}
 .dToast {
   margin-top: 9px;
   font-size: 12.5px;
@@ -3553,6 +4147,186 @@ body.detailMode #bookDetailView {
 }
 .dTrendWrap .trendMetrics {
   margin-bottom: 4px;
+}
+.dWordBarWrap {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-1);
+}
+.wordBarEmpty {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.wbHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.wbTitle { font-size: 12.5px; font-weight: 700; color: var(--ink-1); }
+.wbMeta { font-size: 11px; color: var(--ink-4); }
+.wbReadout {
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line-1);
+  font-size: 12px;
+  color: var(--ink-2);
+  margin-bottom: 8px;
+}
+.wbBars {
+  display: grid;
+  gap: 4px;
+  align-items: end;
+}
+.wbCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 1px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  min-width: 0;
+}
+.wbCol.active {
+  background: var(--bg-sunken);
+  border-color: var(--line-2);
+}
+.wbTrack {
+  width: 100%;
+  height: 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.wbValTop {
+  font-size: 9.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.wbBar {
+  width: 72%;
+  max-width: 24px;
+  min-height: 6px;
+  border-radius: 4px 4px 2px 2px;
+  background: var(--accent-solid);
+}
+.wbZeroBar, .wbNegBar, .wbBaseDot {
+  font-size: 9.5px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--pill);
+  color: var(--ink-3);
+}
+.wbGapSlot {
+  width: 76%;
+  height: 30px;
+  border-radius: 4px;
+  border: 1px dashed var(--line-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  color: var(--ink-4);
+}
+.wbIntervalPill {
+  width: 96%;
+  padding: 3px 2px;
+  border-radius: 5px;
+  border: 1px dashed rgba(235, 183, 130, 0.55);
+  background: var(--amber-tint);
+  color: var(--amber);
+  font-size: 9.5px;
+  line-height: 1.25;
+  font-weight: 600;
+  text-align: center;
+}
+.wbLbl {
+  font-size: 10px;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+.dDailyDetails {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-1);
+}
+.dDailyDetails summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.dDailyWrap {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+.dDailyTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.dDailyTable th, .dDailyTable td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line-1);
+  text-align: right;
+  white-space: nowrap;
+}
+.dDailyTable th:first-child, .dDailyTable td:first-child { text-align: left; }
+.dDailyTable th { color: var(--ink-4); font-weight: 600; }
+.dDailyTable td { color: var(--ink-2); }
+.dDailyTable tr.isGapRow td { color: var(--ink-4); font-style: italic; }
+.ddDelta.up { color: var(--up); }
+.ddDelta.down { color: var(--down); }
+.dMilestoneList {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dMsItem {
+  display: grid;
+  grid-template-columns: 44px 10px minmax(0, 1fr);
+  align-items: start;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.dMsDate { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.dMsDot {
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.dMsItem.isBase .dMsDot { background: var(--amber); }
+.dMsBody {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+.dMsBaseTag {
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--amber-tint);
+  color: var(--amber);
+  font-size: 10.5px;
+  font-weight: 600;
 }
 .dRelList {
   display: flex;
@@ -3654,16 +4428,20 @@ body.detailMode #bookDetailView {
 }
 
 html[data-theme="light"] .dPrimaryBtn { color: #ffffff; }
+html[data-theme="light"] .fattenAlertCnt { color: #ffffff; }
+html[data-theme="light"] .shelfDangerBtn.armed { color: #ffffff; }
 html[data-theme="light"] .dCard,
 html[data-theme="light"] .shelfItem,
 html[data-theme="light"] .shelfEmpty,
-html[data-theme="light"] .dStateBox {
+html[data-theme="light"] .dStateBox,
+html[data-theme="light"] .blockCard {
   box-shadow: 0 2px 9px rgba(16, 52, 46, 0.08), 0 1px 2px rgba(16, 52, 46, 0.04);
 }
 
 @media (max-width: 860px) {
   .dGrid { grid-template-columns: minmax(0, 1fr); }
   .shelfGrid { grid-template-columns: minmax(0, 1fr); }
+  .blockPanels, .backupGrid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 680px) {
   body.detailMode .favToast { bottom: calc(64px + env(safe-area-inset-bottom)); }

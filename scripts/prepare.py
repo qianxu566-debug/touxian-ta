@@ -319,6 +319,7 @@ paired30 = 0
 words_paired1 = 0
 prev_date_str = None
 series_map = {}
+word_series_map = {}
 
 if latest_date:
     d_latest = date.fromisoformat(latest_date)
@@ -344,6 +345,8 @@ if latest_date:
         idx = date_to_idx[d_str]
         for bid, (rc, _wn) in daily_obs[d_str].items():
             series_map.setdefault(bid, []).append([idx, rc])
+            if isinstance(_wn, int) and _wn > 0:
+                word_series_map.setdefault(bid, []).append([idx, _wn])
 
     all_ids = set(obs_now.keys()) | set(series_map.keys())
     if catalog_ids:
@@ -748,6 +751,47 @@ for d_str in all_obs_dates:
             if rc < prev_min:
                 min_obs_seen[bid] = rc
 
+# Build compact milestones for per-book shards: [date_str, kind, grp, value, is_baseline]
+milestones_map = {}
+for bid, grp_map in badge_days.items():
+    ms_list = milestones_map.setdefault(bid, [])
+    for grp, dpos in grp_map.items():
+        sdates = sorted(dpos.keys())
+        if not sdates:
+            continue
+        first_date = sdates[0]
+        first_pos = dpos[first_date]
+        last_date = sdates[-1]
+        if grp in (1, 2):
+            is_base_enter = 1 if (first_date == top30_base_date or (first_date == top100_base_date and first_pos > 30)) else 0
+        else:
+            is_base_enter = 1 if first_date == top30_base_date else 0
+        ms_list.append([first_date, 'enter', grp, first_pos, is_base_enter])
+        best_pos = min(dpos.values())
+        best_date = next(d for d in sdates if dpos[d] == best_pos)
+        if best_date != first_date and best_pos < first_pos:
+            ms_list.append([best_date, 'peak', grp, best_pos, 0])
+        if latest_rank_date and last_date < latest_rank_date:
+            drop_d = str(date.fromisoformat(last_date) + timedelta(days=1))
+            ms_list.append([drop_d, 'drop', grp, len(sdates), 0])
+
+for bid, (c_date, before_r) in cross10k.items():
+    milestones_map.setdefault(bid, []).append([c_date, 'cross10k', 0, before_r, 0])
+
+first_all_obs_date = all_obs_dates[0] if all_obs_dates else ''
+for bid, obs_d in first_obs_date.items():
+    obs_row = daily_obs.get(obs_d, {}).get(bid)
+    if not obs_row:
+        continue
+    obs_is_base = 1 if (first_all_obs_date and obs_d == first_all_obs_date) else 0
+    milestones_map.setdefault(bid, []).append([obs_d, 'obs', 0, obs_row[0], obs_is_base])
+
+_ms_kind_prio = {'obs': 1, 'enter': 2, 'cross10k': 3, 'peak': 4, 'drop': 5}
+for bid, ms_list in milestones_map.items():
+    ms_list.sort(key=lambda m: (m[0], _ms_kind_prio.get(m[1], 0), -m[2]), reverse=True)
+    if len(ms_list) > 12:
+        milestones_map[bid] = ms_list[:12]
+
 debut_books = {}
 candidate_debut_ids = set(first_mold1_100.keys()) | set(first_hot_100.keys()) | set(cross10k.keys()) | set(catalog_ids)
 obs_and_rank_dates = sorted(set(all_obs_dates) | set(all_rank_dates))
@@ -1108,9 +1152,15 @@ def build_shard_book(item):
     tr = trends_books.get(bid)
     if tr:
         entry['t'] = tr
+    ws = word_series_map.get(bid)
+    if ws:
+        entry['w'] = ws
     bg = badges.get(bid)
     if bg:
         entry['badges'] = bg
+    ms = milestones_map.get(bid)
+    if ms:
+        entry['ms'] = ms
     return entry
 
 

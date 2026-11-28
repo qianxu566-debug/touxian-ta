@@ -1,4 +1,4 @@
-import { compressed, fetchCached, dayString } from './reader.js?v=27';
+import { compressed, fetchCached, dayString } from './reader.js?v=28';
 
 const nf = new Intl.NumberFormat('zh-CN');
 
@@ -307,7 +307,14 @@ function fmtAxisVal(v, spanV) {
   return nf.format(v);
 }
 
-function fmtDayDelta(delta, pctVal, hasPrev) {
+export function calendarDayGap(d1, d2, idx1 = 0, idx2 = 1) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(d1 || '') && /^\d{4}-\d{2}-\d{2}$/.test(d2 || '')) {
+    return Math.max(1, Math.round((Date.parse(`${d2}T00:00:00Z`) - Date.parse(`${d1}T00:00:00Z`)) / 86400000));
+  }
+  return Math.max(1, idx2 - idx1);
+}
+
+function fmtDayDelta(delta, pctVal, hasPrev, dayGap = 1) {
   if (!hasPrev || !Number.isFinite(delta)) {
     return { text: '首次实测', cls: 'flat' };
   }
@@ -315,7 +322,8 @@ function fmtDayDelta(delta, pctVal, hasPrev) {
   const sign = delta > 0 ? '+' : delta < 0 ? '-' : '';
   const numStr = delta === 0 ? '0' : `${sign}${nf.format(Math.abs(delta))}`;
   const pctStr = Number.isFinite(pctVal) ? ` (${formatPct(pctVal)})` : '';
-  return { text: `较前日 ${numStr}${pctStr}`, cls };
+  const prefix = dayGap > 1 ? `跨 ${dayGap} 日净增 ` : '较前日 ';
+  return { text: `${prefix}${numStr}${pctStr}`, cls };
 }
 
 function buildInteractiveChart(series, dates, rangeDays = 7, bookId = '') {
@@ -345,19 +353,31 @@ function buildInteractiveChart(series, dates, rangeDays = 7, bookId = '') {
   const minV = Math.min(...vals);
   const maxV = Math.max(...vals);
   const spanV = maxV - minV;
-  const minX = pts[0][0];
-  const maxX = pts[pts.length - 1][0];
-  const spanX = maxX - minX || 1;
+  const firstPtDate = dates[pts[0][0]] || '';
+  const lastPtDate = dates[pts[pts.length - 1][0]] || '';
+  const useCalAxis = /^\d{4}-\d{2}-\d{2}$/.test(firstPtDate) && /^\d{4}-\d{2}-\d{2}$/.test(lastPtDate);
+  const minX = 0;
+  const maxX = useCalAxis
+    ? Math.max(1, calendarDayGap(firstPtDate, lastPtDate, pts[0][0], pts[pts.length - 1][0]))
+    : Math.max(1, pts[pts.length - 1][0] - pts[0][0]);
   const padX = 2.6;
 
   const pointObjs = pts.map(([idx, val], i) => {
-    const prevPt = i > 0 ? pts[i - 1] : (startPos > 0 ? series[startPos - 1] : null);
+    const prevInWin = i > 0 ? pts[i - 1] : null;
+    const prevPt = prevInWin || (startPos > 0 ? series[startPos - 1] : null);
     const dPrev = prevPt ? val - prevPt[1] : null;
     const pPrev = prevPt && prevPt[1] > 0 ? (100 * dPrev) / prevPt[1] : null;
-    const { text: deltaText, cls: deltaCls } = fmtDayDelta(dPrev, pPrev, Boolean(prevPt));
+    const dayGap = prevPt ? calendarDayGap(dates[prevPt[0]] || '', dates[idx] || '', prevPt[0], idx) : 1;
+    const winGap = prevInWin ? calendarDayGap(dates[prevInWin[0]] || '', dates[idx] || '', prevInWin[0], idx) : 1;
+    const isGapAfterPrev = Boolean(prevInWin && winGap > 1);
+    const gapDays = isGapAfterPrev ? winGap - 1 : 0;
+    const { text: deltaText, cls: deltaCls } = fmtDayDelta(dPrev, pPrev, Boolean(prevPt), dayGap);
     const dateFull = dates[idx] || '';
     const date = dateFull ? dateFull.slice(5) : `#${i + 1}`;
-    const xPct = pts.length === 1 ? 50 : padX + ((idx - minX) / spanX) * (100 - 2 * padX);
+    const xOffset = useCalAxis
+      ? (i === 0 ? 0 : calendarDayGap(firstPtDate, dateFull, pts[0][0], idx))
+      : (idx - pts[0][0]);
+    const xPct = pts.length === 1 ? 50 : padX + ((xOffset - minX) / maxX) * (100 - 2 * padX);
     const ySvg = spanV === 0 ? 100 : 182 - ((val - minV) / spanV) * 164;
     const yPct = (ySvg / 200) * 100;
     return {
@@ -367,6 +387,8 @@ function buildInteractiveChart(series, dates, rangeDays = 7, bookId = '') {
       val,
       valText: fmtReadersDetail(val),
       hasPrev: Boolean(prevPt),
+      isGapAfterPrev,
+      gapDays,
       deltaText,
       deltaCls,
       xPct: Number(xPct.toFixed(2)),
@@ -375,10 +397,27 @@ function buildInteractiveChart(series, dates, rangeDays = 7, bookId = '') {
     };
   });
 
+  const segments = [[]];
+  for (let i = 0; i < pointObjs.length; i++) {
+    if (i > 0 && pointObjs[i].isGapAfterPrev) {
+      segments.push([]);
+    }
+    segments[segments.length - 1].push(pointObjs[i]);
+  }
+  const totalGapDays = pointObjs.slice(1).reduce((s, p) => s + p.gapDays, 0);
+
   const last = pointObjs[pointObjs.length - 1];
-  const coords = pointObjs.map((p) => `${(p.xPct * 10).toFixed(1)},${p.ySvg}`);
-  const area = `${(pointObjs[0].xPct * 10).toFixed(1)},196 ${coords.join(' ')} ${(last.xPct * 10).toFixed(1)},196`;
   const gradId = `tcg-${String(bookId || 'x').replace(/[^a-zA-Z0-9_-]/g, '')}-${rangeDays}`;
+  const segSvgs = segments
+    .filter((seg) => seg.length >= 2)
+    .map((seg) => {
+      const coords = seg.map((p) => `${(p.xPct * 10).toFixed(1)},${p.ySvg}`);
+      const firstSegX = (seg[0].xPct * 10).toFixed(1);
+      const lastSegX = (seg[seg.length - 1].xPct * 10).toFixed(1);
+      const area = `${firstSegX},196 ${coords.join(' ')} ${lastSegX},196`;
+      return `<polygon points="${area}" fill="url(#${gradId})"/><polyline class="tcSegLine" points="${coords.join(' ')}" fill="none" stroke="var(--chart-line)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+    })
+    .join('');
 
   const yTicks = spanV === 0
     ? ['', fmtAxisVal(maxV, 0), '']
@@ -394,6 +433,15 @@ function buildInteractiveChart(series, dates, rangeDays = 7, bookId = '') {
     showDotIdx.add(last.i);
     if (peakPt) showDotIdx.add(peakPt.i);
     if (troughPt) showDotIdx.add(troughPt.i);
+  }
+  for (const seg of segments) {
+    if (seg.length === 1) showDotIdx.add(seg[0].i);
+  }
+  for (let i = 1; i < pointObjs.length; i++) {
+    if (pointObjs[i].isGapAfterPrev) {
+      showDotIdx.add(i - 1);
+      showDotIdx.add(i);
+    }
   }
 
   const dotsHtml = pointObjs
@@ -433,10 +481,11 @@ function buildInteractiveChart(series, dates, rangeDays = 7, bookId = '') {
     yPct,
   }));
 
-  const winLabel = rangeDays === 1 ? '单日对比' : `近 ${rangeDays} 天 · 实测 ${pointObjs.length} 天`;
+  const winLabel = (rangeDays === 1 ? '单日对比' : `近 ${rangeDays} 天 · 实测 ${pointObjs.length} 天`)
+    + (totalGapDays > 0 ? ` · 缺测 ${totalGapDays} 天断线` : '');
 
   return (
-    `<div class="trendChart" data-pts="${escAttr(JSON.stringify(compactPts))}">` +
+    `<div class="trendChart" data-pts="${escAttr(JSON.stringify(compactPts))}"${totalGapDays > 0 ? ' data-has-gaps="1"' : ''}>` +
     `<div class="tcReadout" aria-live="polite">` +
     `<div class="tcReadMain"><span class="tcDate">${last.date}</span><span class="tcSep">·</span><b class="tcVal">在读 ${last.valText}</b><span class="tcSep">·</span><span class="tcDelta ${last.deltaCls}">${last.deltaText}</span></div>` +
     `<div class="tcReadMeta"><span class="tcWinTag">${winLabel}</span><span class="tcHint">滑动/点击节点</span></div>` +
@@ -449,8 +498,7 @@ function buildInteractiveChart(series, dates, rangeDays = 7, bookId = '') {
     `<line x1="0" y1="18" x2="1000" y2="18" stroke="var(--line-2)" stroke-dasharray="4 6" vector-effect="non-scaling-stroke"/>` +
     `<line x1="0" y1="100" x2="1000" y2="100" stroke="var(--line-1)" stroke-dasharray="4 6" vector-effect="non-scaling-stroke"/>` +
     `<line x1="0" y1="182" x2="1000" y2="182" stroke="var(--line-2)" stroke-dasharray="4 6" vector-effect="non-scaling-stroke"/>` +
-    `<polygon points="${area}" fill="url(#${gradId})"/>` +
-    `<polyline points="${coords.join(' ')}" fill="none" stroke="var(--chart-line)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` +
+    segSvgs +
     `</svg>` +
     `<div class="tcOverlay" aria-hidden="true">` +
     `<div class="tcGuide" style="left:${last.xPct}%"></div>` +
