@@ -93,12 +93,16 @@ export function mobilePlatform(){
 export function isWeChat(){
   return /\bMicroMessenger\//i.test(navigator.userAgent);
 }
-export function isStandaloneApp(){
+export function isAndroidAppShell(){
+  if(typeof window!=='undefined'&&window.TouxianNativeShelf)return true;
   const ua=navigator.userAgent||'';
-  if(window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true)return true;
   const isAndroidWv=/Android/i.test(ua)&&/;\s*wv\)/i.test(ua);
   const isKnownHost=/MicroMessenger|QQ\/|MQQBrowser|Alipay|Weibo|DingTalk|baiduboxapp|NewsArticle|aweme|UCBrowser|Quark|EdgA|Firefox|SamsungBrowser|MiuiBrowser|HeyTapBrowser|VivoBrowser|HuaweiBrowser/i.test(ua);
   return isAndroidWv&&!isKnownHost;
+}
+export function isStandaloneApp(){
+  if(isAndroidAppShell())return true;
+  return Boolean(window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true);
 }
 export function appLink(id,platform){
   if(!/^\d+$/.test(id)||!['ios','android'].includes(platform))return '';

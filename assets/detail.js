@@ -1,5 +1,5 @@
-import { fetchCached, mobilePlatform, appLink, ageDays, dayString } from './reader.js?v=25';
-import { getTrend, shortDelta, deltaClass, formatPct, dayLabel, renderRankBadges, renderTrendPanel, windowMetric } from './daily.js?v=25';
+import { fetchCached, mobilePlatform, appLink, ageDays, dayString } from './reader.js?v=26';
+import { getTrend, shortDelta, deltaClass, formatPct, dayLabel, renderRankBadges, renderTrendPanel, windowMetric } from './daily.js?v=26';
 
 const nf = new Intl.NumberFormat('zh-CN');
 const wanNf = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 1 });
